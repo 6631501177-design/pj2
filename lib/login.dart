@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pj2/register.dart';
+import 'package:pj2/lecturer_dashboard_tab.dart';
+import 'package:pj2/staff_main.dart';
 import 'package:pj2/student_main_screen.dart';
 
 const Color primaryColor = Color(0xFF0A4D68);
@@ -30,27 +32,17 @@ class _LoginScreenState extends State<LoginScreen> {
       // Student login
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (context) => const StudentMainScreen(),
-        ),
+        MaterialPageRoute(builder: (context) => const StudentMainScreen()),
       );
     } else if (username == 'lecturer' && password == '1234') {
-      // Lecturer login
-      // TODO: Replace with LecturerMainScreen when available
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (context) => const StudentMainScreen(), // Placeholder
-        ),
+        MaterialPageRoute(builder: (context) => const LecturerDashboard()),
       );
     } else if (username == 'staff' && password == '3456') {
-      // Staff login
-      // TODO: Replace with StaffMainScreen when available
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (context) => const StudentMainScreen(), // Placeholder
-        ),
+        MaterialPageRoute(builder: (context) => const StaffMainScreen()),
       );
     } else {
       setState(() {
@@ -105,7 +97,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     padding: const EdgeInsets.only(bottom: 16.0),
                     child: Text(
                       _errorMessage!,
-                      style: const TextStyle(color: Colors.orange, fontSize: 16),
+                      style: const TextStyle(
+                        color: Colors.orange,
+                        fontSize: 16,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),

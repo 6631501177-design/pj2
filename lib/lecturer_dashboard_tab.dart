@@ -1,26 +1,5 @@
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const AssetManagementApp());
-}
-
-class AssetManagementApp extends StatelessWidget {
-  const AssetManagementApp({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Asset Management',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: const Color(0xFF3D6B7D),
-      ),
-      home: const LecturerDashboard(),
-      debugShowCheckedModeBanner: false,
-    );
-  }
-}
-
 class LecturerDashboard extends StatelessWidget {
   const LecturerDashboard({Key? key}) : super(key: key);
 
@@ -33,16 +12,12 @@ class LecturerDashboard extends StatelessWidget {
           children: [
             // App Bar
             _buildAppBar(context),
-            
+
             // Content
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  children: [
-                    _buildDashboardCard(),
-                  ],
-                ),
+                child: Column(children: [_buildDashboardCard()]),
               ),
             ),
           ],
@@ -77,10 +52,7 @@ class LecturerDashboard extends StatelessWidget {
             ),
             child: const Text(
               'Logout',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-              ),
+              style: TextStyle(color: Colors.white, fontSize: 16),
             ),
           ),
         ],
@@ -117,7 +89,7 @@ class LecturerDashboard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Stats Row
           Row(
             children: [

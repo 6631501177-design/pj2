@@ -18,7 +18,7 @@ class _StaffMainScreenState extends State<StaffMainScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _widgetOptions = <Widget>[
-    // const _DashboardContent(),
+    const _DashboardContent(),
     // const StaffEditAssetsTab(),
     // const StaffProcessReturnTab(),
     // const StaffHistoryTab(),
