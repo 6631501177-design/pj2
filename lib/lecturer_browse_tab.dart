@@ -152,13 +152,13 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
       },
       {
         'name': 'Asus ViVobook 15',
-        'image': '💻',
+        'image':' assets/images/AsusVivo14.jpg',
         'status': 'Available',
         'statusColor': const Color(0xFF4CAF50),
       },
       {
         'name': 'iPad Air',
-        'image': '📱',
+        'image': ' assets/images/.jpg',
         'status': 'Available',
         'statusColor': const Color(0xFF4CAF50),
       },
