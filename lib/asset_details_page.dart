@@ -227,25 +227,6 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
-
-                  const Text(
-                    'Description',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: bodyTextColor,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'This is a placeholder description for the asset. You can add more details here, such as specifications, model number, or any borrowing conditions.',
-                    style: TextStyle(
-                      color: subtitleTextColor,
-                      fontSize: 16,
-                      height: 1.5,
-                    ),
-                  ),
                   const SizedBox(height: 20),
                   const Text(
                     'Borrow Date',
@@ -329,31 +310,6 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
                           ),
                         ],
                       ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Purpose',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: bodyTextColor,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _purposeController,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      hintText: 'Enter purpose of borrowing',
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      contentPadding: const EdgeInsets.all(12),
                     ),
                   ),
                 ],

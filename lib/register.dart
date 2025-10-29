@@ -108,7 +108,6 @@ class RegisterPage extends StatelessWidget {
                   ),
                 ),
                 onPressed: () {
-                  // TODO: Add registration logic
                   print('Register button pressed');
                   // Go back to the login page
                   Navigator.pop(context);
