@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pj2/student_main_screen.dart'; // For shared colors
+import 'package:pj2/student_main_screen.dart';
 
 class StudentRequestsTab extends StatelessWidget {
   const StudentRequestsTab({super.key});
@@ -20,24 +20,13 @@ class StudentRequestsTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          // Example Pending Request Card
           _buildRequestCard(
             context,
             'Samsung S10+',
-            'assets/samsung.png',
+            'assets/images/samsungs10.jpg',
             'Pending',
             'Pending approval from admin.',
             pendingColor,
-          ),
-          const SizedBox(height: 16),
-          // Example Approved Request Card
-          _buildRequestCard(
-            context,
-            'MacBook Air',
-            'assets/macbook_pro.png',
-            'Approved',
-            'Ready for pickup at Room A-102.',
-            availableColor, // Green for approved
           ),
         ],
       ),
@@ -98,7 +87,7 @@ class StudentRequestsTab extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1), // Light status bg
+                      color: statusColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(5),
                     ),
                     child: Text(

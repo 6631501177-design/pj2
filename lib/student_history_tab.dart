@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pj2/student_main_screen.dart'; // For shared colors
+import 'package:pj2/student_main_screen.dart';
 
 class StudentHistoryTab extends StatelessWidget {
   const StudentHistoryTab({super.key});
@@ -20,11 +20,10 @@ class StudentHistoryTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          // Example History Card
           _buildHistoryCard(
             context,
             'Samsung S10+',
-            'assets/samsung.png',
+            'assets/images/samsungs10.jpg',
             'Returned',
             'Returned on: 2025-10-20',
           ),
@@ -32,7 +31,7 @@ class StudentHistoryTab extends StatelessWidget {
           _buildHistoryCard(
             context,
             'Canon EOS R10',
-            'assets/canon.png',
+            'assets/images/canon.jpg',
             'Returned',
             'Returned on: 2025-09-15',
           ),
@@ -94,13 +93,13 @@ class StudentHistoryTab extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: availableColor.withOpacity(0.1), // Green-ish bg
+                      color: availableColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(5),
                     ),
                     child: Text(
                       status,
                       style: const TextStyle(
-                        color: availableColor, // Green text
+                        color: availableColor,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
