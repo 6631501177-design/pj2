@@ -1,16 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:pj2/student_main_screen.dart';
+import 'student_main_screen.dart';
 
 class AssetDetailsPage extends StatefulWidget {
   final String assetName;
   final String imagePath;
+  final String status;
 
   const AssetDetailsPage({
     super.key,
     required this.assetName,
     required this.imagePath,
+    required this.status,
   });
+
+  Color _getStatusColor() {
+    switch (status.toLowerCase()) {
+      case 'available':
+        return Colors.green;
+      case 'borrowed':
+        return Colors.red;
+      case 'pending':
+        return Colors.orange;
+      case 'disabled':
+      default:
+        return Colors.grey;
+    }
+  }
 
   @override
   State<AssetDetailsPage> createState() => _AssetDetailsPageState();
@@ -19,7 +35,6 @@ class AssetDetailsPage extends StatefulWidget {
 class _AssetDetailsPageState extends State<AssetDetailsPage> {
   DateTime? _borrowDate;
   DateTime? _returnDate;
-  final TextEditingController _purposeController = TextEditingController();
 
   Future<void> _selectBorrowDate() async {
     final DateTime? picked = await showDatePicker(
@@ -66,44 +81,28 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
               const Icon(Icons.check_circle, color: Colors.green, size: 100),
               const SizedBox(height: 20),
               const Text(
-                'Request Success',
+                'Request Submitted',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.black,
                 ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 10),
+              const Text(
+                'Your request has been submitted successfully.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16, color: Colors.black87),
+              ),
+              const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    if (_borrowDate == null ||
-                        _returnDate == null ||
-                        _purposeController.text.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please fill in all fields'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                      return;
-                    }
-                    if (_returnDate!.isBefore(_borrowDate!)) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Return date must be after borrow date',
-                          ),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                      return;
-                    }
                     Navigator.of(context).pop();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: buttonColor,
+                    backgroundColor: Theme.of(context).primaryColor,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -111,7 +110,7 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
                     ),
                   ),
                   child: const Text(
-                    'Borrow Now',
+                    'Close',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -126,7 +125,7 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: primaryColor, // Dark blue background
+      backgroundColor: primaryColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -167,13 +166,13 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
-                                    Icons.image_not_supported,
+                                    Icons.broken_image,
                                     color: Colors.grey,
                                     size: 60,
                                   ),
-                                  SizedBox(height: 8),
+                                  SizedBox(height: 4),
                                   Text(
-                                    'Image not available',
+                                    'Image unavailable',
                                     style: TextStyle(color: Colors.grey),
                                   ),
                                 ],
@@ -207,44 +206,27 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
+                          horizontal: 12,
+                          vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: availableColor.withOpacity(
-                            0.2,
-                          ), // Light green bg
-                          borderRadius: BorderRadius.circular(5),
+                          color: widget._getStatusColor().withOpacity(0.1),
+                          border: Border.all(
+                            color: widget._getStatusColor().withOpacity(0.1),
+                            width: 1,
+                          ),
                         ),
-                        child: const Text(
-                          'Available', // Hardcoded as per your design
+                        child: Text(
+                          widget.status,
                           style: TextStyle(
-                            color: availableColor,
+                            color: widget._getStatusColor(),
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                            fontSize: 14,
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  const Text(
-                    'Description',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: bodyTextColor,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'This is a placeholder description for the asset. You can add more details here, such as specifications, model number, or any borrowing conditions.',
-                    style: TextStyle(
-                      color: subtitleTextColor,
-                      fontSize: 16,
-                      height: 1.5,
-                    ),
                   ),
                   const SizedBox(height: 20),
                   const Text(
@@ -331,31 +313,6 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
                       ),
                     ),
                   ),
-
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Purpose',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: bodyTextColor,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _purposeController,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      hintText: 'Enter purpose of borrowing',
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      contentPadding: const EdgeInsets.all(12),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -364,22 +321,55 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
           Container(
             padding: const EdgeInsets.all(16.0),
             color: primaryColor,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: buttonColor,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_borrowDate == null || _returnDate == null)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 8.0),
+                    child: Text(
+                      'Please select both borrow and return dates',
+                      style: TextStyle(
+                        color: Colors.orange,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _borrowDate != null && _returnDate != null
+                        ? buttonColor
+                        : Colors.grey,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                  ),
+                  onPressed: _borrowDate != null && _returnDate != null
+                      ? () {
+                          if (_borrowDate!.isAfter(_returnDate!)) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Return date must be after borrow date',
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+                          _showSuccessDialog(context);
+                        }
+                      : null,
+                  child: const Text(
+                    'Request Borrow',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
                 ),
-              ),
-              onPressed: () {
-                _showSuccessDialog(context);
-              },
-              child: const Text(
-                'Request Borrow',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              ),
+              ],
             ),
           ),
         ],
