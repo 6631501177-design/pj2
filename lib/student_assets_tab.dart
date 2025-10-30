@@ -13,17 +13,53 @@ class StudentAssetsTab extends StatefulWidget {
 class _StudentAssetsTabState extends State<StudentAssetsTab> {
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, String>> assets = [
-      {'name': 'Asus VivoBook', 'image': 'assets/images/AsusVivo14.jpg'},
-      {'name': 'iPad', 'image': 'assets/images/IPad.jpg'},
-      {'name': 'Canon', 'image': 'assets/images/canon.jpg'},
-      {'name': 'MacBook', 'image': 'assets/images/macbook.jpg'},
-      {'name': 'Projector', 'image': 'assets/images/projector.jpg'},
-      {'name': 'Wanbo T2R', 'image': 'assets/images/wanbo.jpg'},
-      {'name': 'Samsung S10', 'image': 'assets/images/samsungs10.jpg'},
+    final List<Map<String, dynamic>> assets = [
+      {
+        'name': 'Asus VivoBook',
+        'image': 'assets/images/AsusVivo14.jpg',
+        'status': 'Available',
+        'statusColor': const Color(0xFF4CAF50),
+      },
+      {
+        'name': 'iPad',
+        'image': 'assets/images/IPad.jpg',
+        'status': 'Borrowed',
+        'statusColor': const Color(0xFFF44336),
+      },
+      {
+        'name': 'Canon',
+        'image': 'assets/images/canon.jpg',
+        'status': 'Available',
+        'statusColor': const Color(0xFF4CAF50),
+      },
+      {
+        'name': 'MacBook',
+        'image': 'assets/images/macbook.jpg',
+        'status': 'Pending',
+        'statusColor': const Color(0xFFFFA000),
+      },
+      {
+        'name': 'Projector',
+        'image': 'assets/images/projector.jpg',
+        'status': 'Available',
+        'statusColor': const Color(0xFF4CAF50),
+      },
+      {
+        'name': 'Wanbo T2R',
+        'image': 'assets/images/wanbo.jpg',
+        'status': 'Disabled',
+        'statusColor': const Color(0xFF9E9E9E),
+      },
+      {
+        'name': 'Samsung S10',
+        'image': 'assets/images/samsungs10.jpg',
+        'status': 'Available',
+        'statusColor': const Color(0xFF4CAF50),
+      },
     ];
 
     return Scaffold(
+      backgroundColor: primaryColor,
       appBar: AppBar(
         backgroundColor: primaryColor,
         elevation: 0,
@@ -32,46 +68,16 @@ class _StudentAssetsTabState extends State<StudentAssetsTab> {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
-          // Logout Button
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
-            onPressed: () async {
-              // Show a confirmation dialog
-              final shouldLogout = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Logout'),
-                  content: const Text('Are you sure you want to log out?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(true),
-                      style: TextButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('Logout'),
-                    ),
-                  ],
+            onPressed: () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const login_screen.LoginScreen(),
                 ),
+                (route) => false,
               );
-
-              // If user confirms logout
-              if (shouldLogout == true) {
-                if (mounted) {
-                  // Clear all routes and navigate to login
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const login_screen.LoginScreen(),
-                    ),
-                    (route) => false, // Remove all previous routes
-                  );
-                }
-              }
             },
           ),
         ],
@@ -88,21 +94,51 @@ class _StudentAssetsTabState extends State<StudentAssetsTab> {
           itemCount: assets.length,
           itemBuilder: (context, index) {
             final asset = assets[index];
-            return _buildAssetCard(context, asset['name']!, asset['image']!);
+            return _buildAssetCard(
+              context,
+              asset['name']!,
+              asset['image']!,
+              asset['status']!,
+              asset['statusColor']!,
+            );
           },
         ),
       ),
     );
   }
 
-  Widget _buildAssetCard(BuildContext context, String name, String imagePath) {
+  IconData _getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'available':
+        return Icons.check_circle_outline;
+      case 'borrowed':
+        return Icons.history_outlined;
+      case 'pending':
+        return Icons.access_time_outlined;
+      case 'disabled':
+        return Icons.block_outlined;
+      default:
+        return Icons.info_outline;
+    }
+  }
+
+  Widget _buildAssetCard(
+    BuildContext context,
+    String name,
+    String imagePath,
+    String status,
+    Color statusColor,
+  ) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                AssetDetailsPage(assetName: name, imagePath: imagePath),
+            builder: (context) => AssetDetailsPage(
+              assetName: name,
+              imagePath: imagePath,
+              status: status,
+            ),
           ),
         );
       },
@@ -129,7 +165,7 @@ class _StudentAssetsTabState extends State<StudentAssetsTab> {
                   );
                 },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Text(
                 name,
                 textAlign: TextAlign.center,
@@ -137,6 +173,35 @@ class _StudentAssetsTabState extends State<StudentAssetsTab> {
                   color: cardTextColor,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(_getStatusIcon(status), size: 14, color: statusColor),
+                    const SizedBox(width: 4),
+                    Text(
+                      status,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

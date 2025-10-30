@@ -5,15 +5,14 @@ import 'package:pj2/student_history_tab.dart';
 
 // --- Shared Colors ---
 const Color primaryColor = Color(0xFF0A4D68);
-const Color secondaryColor = Color(0xFF088395); // For accent/selected tab
-const Color cardColor = Color(0xFFFFFFFF); // White cards from your design
+const Color secondaryColor = Color(0xFF088395);
+const Color cardColor = Color(0xFFFFFFFF);
 const Color cardTextColor = Colors.black;
 const Color bodyTextColor = Colors.white;
 const Color subtitleTextColor = Colors.white70;
-const Color availableColor = Color(0xFF28A745); // Green for "Available"
-const Color pendingColor = Color(0xFFFFA500); // Orange for "Pending"
-const Color buttonColor = Color(0xFF4F709C); // Action button blue
-// --- End Shared Colors ---
+const Color availableColor = Color(0xFF28A745);
+const Color pendingColor = Color(0xFFFFA500);
+const Color buttonColor = Color(0xFF4F709C);
 
 class StudentMainScreen extends StatefulWidget {
   const StudentMainScreen({super.key});
@@ -23,9 +22,8 @@ class StudentMainScreen extends StatefulWidget {
 }
 
 class _StudentMainScreenState extends State<StudentMainScreen> {
-  int _selectedIndex = 0; // Index for the selected tab
+  int _selectedIndex = 0;
 
-  // List of tabs
   static const List<Widget> _widgetOptions = <Widget>[
     StudentAssetsTab(),
     StudentRequestsTab(),
@@ -42,11 +40,7 @@ class _StudentMainScreenState extends State<StudentMainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: primaryColor,
-      body: SafeArea(
-        child: _widgetOptions.elementAt(
-          _selectedIndex,
-        ), // Display the selected tab
-      ),
+      body: SafeArea(child: _widgetOptions.elementAt(_selectedIndex)),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
@@ -60,11 +54,11 @@ class _StudentMainScreenState extends State<StudentMainScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: secondaryColor, // Color for the selected icon/label
+        selectedItemColor: secondaryColor,
         unselectedItemColor: Colors.grey[400],
         onTap: _onItemTapped,
-        backgroundColor: Colors.white, // White background for nav bar
-        type: BottomNavigationBarType.fixed, // Ensures all items are visible
+        backgroundColor: Colors.white,
+        type: BottomNavigationBarType.fixed,
       ),
     );
   }
