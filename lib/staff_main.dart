@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-// import 'package:mine/staff_edit_assets_tab.dart';
-// import 'package:mine/staff_history_tab.dart';
-// import 'package:mine/staff_process_return_tab.dart';
+import 'package:pj2/staff_edit_assets_tab.dart';
+import 'package:pj2/staff_history_tab.dart';
+import 'package:pj2/staff_process_return_tab.dart';
 import 'package:pj2/staff_theme.dart';
 import 'package:pj2/login.dart' as login_screen;
 
@@ -19,9 +19,9 @@ class _StaffMainScreenState extends State<StaffMainScreen> {
 
   final List<Widget> _widgetOptions = <Widget>[
     const _DashboardContent(),
-    // const StaffEditAssetsTab(),
-    // const StaffProcessReturnTab(),
-    // const StaffHistoryTab(),
+    const StaffEditAssetsTab(),
+    const StaffProcessReturnTab(),
+    const StaffHistoryTab(),
   ];
 
   void _onItemTapped(int index) {
