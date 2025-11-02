@@ -28,8 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text.trim();
 
     // Check credentials
-    if (username == 'Robin' && password == '10123') {
-      // Student login
+    if (username == 'student' && password == '0258') {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const StudentMainScreen()),

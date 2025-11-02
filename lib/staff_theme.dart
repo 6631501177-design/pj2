@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-const Color staffPrimaryColor = Color(0xFF3D6B7D);
+const Color staffPrimaryColor = Color(0xFF0A4D68);
 const Color staffSecondaryColor = Color(0xFF2C5464);
 const Color staffButtonBlue = Color(0xFF4F709C);
 const Color staffButtonRed = Color(0xFFD9534F);

@@ -122,11 +122,11 @@ class _DashboardContent extends StatelessWidget {
           fontWeight: FontWeight.w500,
         ),
       ),
-      actions: [
-        TextButton.icon(
+      actions: <Widget>[
+        IconButton(
           onPressed: () {
             Navigator.pushAndRemoveUntil(
-              navigatorKey.currentContext!,
+              context,
               MaterialPageRoute(
                 builder: (context) => const login_screen.LoginScreen(),
               ),
@@ -134,10 +134,7 @@ class _DashboardContent extends StatelessWidget {
             );
           },
           icon: const Icon(Icons.logout, color: Colors.white),
-          label: const Text(
-            'Logout',
-            style: TextStyle(color: Colors.white, fontSize: 16),
-          ),
+          tooltip: 'Logout',
         ),
       ],
     );
@@ -167,23 +164,23 @@ class _DashboardContent extends StatelessWidget {
             children: [
               _buildStatCard(
                 label: 'Available',
-                count: '13',
-                color: staffAvailableColor,
-                backgroundColor: staffAvailableBg,
+                count: '5',
+                color: const Color(0xFF4CAF50),
+                backgroundColor: const Color(0xFFF1F8F4),
               ),
               const SizedBox(width: 12),
               _buildStatCard(
                 label: 'Borrowed',
-                count: '11',
-                color: staffBorrowedColor,
-                backgroundColor: staffBorrowedBg,
+                count: '2',
+                color: const Color(0xFFF44336),
+                backgroundColor: const Color(0xFFFFF3E0),
               ),
               const SizedBox(width: 12),
               _buildStatCard(
                 label: 'Disabled',
-                count: '4',
-                color: staffDisabledColor,
-                backgroundColor: staffDisabledBg,
+                count: '1',
+                color: const Color(0xFFBDBDBD),
+                backgroundColor: const Color(0xFFF5F5F5),
               ),
             ],
           ),
@@ -227,36 +224,6 @@ class _DashboardContent extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required IconData icon,
-    required String label,
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: isActive ? Colors.white : Colors.white.withOpacity(0.5),
-            size: 28,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: isActive ? Colors.white : Colors.white.withOpacity(0.5),
-              fontSize: 12,
-              fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-            ),
-          ),
-        ],
       ),
     );
   }
