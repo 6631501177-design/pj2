@@ -1,34 +1,87 @@
 import 'package:flutter/material.dart';
 import 'package:pj2/student_main_screen.dart';
 
-class StudentRequestsTab extends StatelessWidget {
+const Color pendingColor = Color(0xFFFFA500);
+
+// Global key to access the StudentRequestsTab state
+final GlobalKey<_StudentRequestsTabState> studentRequestsTabKey =
+    GlobalKey<_StudentRequestsTabState>();
+
+class StudentRequestsTab extends StatefulWidget {
   const StudentRequestsTab({super.key});
 
   @override
+  _StudentRequestsTabState createState() => _StudentRequestsTabState();
+
+  // Static method to access the state from anywhere
+  static _StudentRequestsTabState? of(BuildContext context) {
+    // First try to find using the global key
+    if (studentRequestsTabKey.currentState != null) {
+      return studentRequestsTabKey.currentState;
+    }
+    // Fallback to finding in the widget tree
+    return context.findAncestorStateOfType<_StudentRequestsTabState>();
+  }
+}
+
+class _StudentRequestsTabState extends State<StudentRequestsTab> {
+  _StudentRequestsTabState();
+
+  // This list will store the borrowed items
+  final List<Map<String, dynamic>> _requests = [];
+
+  // This method can be called to add a new request
+  void addRequest(String assetName, String imagePath) {
+    setState(() {
+      _requests.add({
+        'assetName': assetName,
+        'imagePath': imagePath,
+        'status': 'Pending',
+        'description': 'Pending approval from admin.',
+        'color': pendingColor,
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'My Requests',
-            style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: bodyTextColor,
+    return KeyedSubtree(
+      key: studentRequestsTabKey,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'My Requests',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: bodyTextColor,
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
-          _buildRequestCard(
-            context,
-            'Samsung S10+',
-            'assets/images/samsungs10.jpg',
-            'Pending',
-            'Pending approval from admin.',
-            pendingColor,
-          ),
-        ],
+            const SizedBox(height: 24),
+            // Show all requests
+            ..._requests.map(
+              (request) => _buildRequestCard(
+                context,
+                request['assetName'],
+                request['imagePath'],
+                request['status'],
+                request['description'],
+                request['color'],
+              ),
+            ),
+            // Show message if no requests
+            if (_requests.isEmpty)
+              const Center(
+                child: Text(
+                  'No requests yet',
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
