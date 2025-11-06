@@ -1,27 +1,44 @@
+// import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'student_main_screen.dart';
+import 'package:pj2/student_requests_tab.dart'
+    show studentRequestsTabKey, StudentRequestsTab;
+// import 'package:http/http.dart' as http;
+
+const Color primaryColor = Color(0xFF0A4D68);
+const Color secondaryColor = Color(0xFF088395);
+const Color cardColor = Color(0xFFFFFFFF);
+const Color cardTextColor = Colors.black;
+const Color bodyTextColor = Colors.white;
+const Color subtitleTextColor = Colors.white70;
+const Color availableColor = Color(0xFF28A745);
+const Color pendingColor = Color(0xFFFFA500);
+const Color buttonColor = Color(0xFF4F709C);
 
 class AssetDetailsPage extends StatefulWidget {
   final String assetName;
   final String imagePath;
   final String status;
+  final int assetId;
+  final VoidCallback? onRequestAdded;
 
   const AssetDetailsPage({
     super.key,
     required this.assetName,
     required this.imagePath,
     required this.status,
+    required this.assetId,
+    this.onRequestAdded,
   });
 
   Color _getStatusColor() {
     switch (status.toLowerCase()) {
       case 'available':
-        return Colors.green;
+        return availableColor;
       case 'borrowed':
         return Colors.red;
       case 'pending':
-        return Colors.orange;
+        return pendingColor;
       case 'disabled':
       default:
         return Colors.grey;
@@ -33,19 +50,29 @@ class AssetDetailsPage extends StatefulWidget {
 }
 
 class _AssetDetailsPageState extends State<AssetDetailsPage> {
-  DateTime? _borrowDate;
-  DateTime? _returnDate;
+  late DateTime _borrowDate;
+  late DateTime _returnDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _borrowDate = DateTime.now();
+    _returnDate = _borrowDate.add(const Duration(days: 1));
+  }
 
   Future<void> _selectBorrowDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: _borrowDate,
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
     );
-    if (picked != null && picked != _borrowDate) {
+    if (picked != null) {
       setState(() {
         _borrowDate = picked;
+        if (_returnDate.isBefore(picked)) {
+          _returnDate = picked.add(const Duration(days: 1));
+        }
       });
     }
   }
@@ -53,69 +80,99 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
   Future<void> _selectReturnDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate:
-          _borrowDate?.add(const Duration(days: 1)) ??
-          DateTime.now().add(const Duration(days: 1)),
-      firstDate: _borrowDate ?? DateTime.now(),
+      initialDate: _returnDate,
+      firstDate: _borrowDate,
       lastDate: DateTime(2100),
     );
-    if (picked != null && picked != _returnDate) {
+    if (picked != null) {
       setState(() {
         _returnDate = picked;
       });
     }
   }
 
-  void _showSuccessDialog(BuildContext context) {
-    showDialog(
+  Future<void> _showSuccessDialog() async {
+    // Show success dialog
+    await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
-        return AlertDialog(
+        return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 20),
-              const Icon(Icons.check_circle, color: Colors.green, size: 100),
-              const SizedBox(height: 20),
-              const Text(
-                'Request Submitted',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle, color: Colors.green, size: 100),
+                const SizedBox(height: 20),
+                const Text(
+                  'Request Submitted',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                'Your request has been submitted successfully.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.black87),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                const SizedBox(height: 10),
+                const Text(
+                  'Your request has been submitted successfully.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: Colors.black87),
+                ),
+                const SizedBox(height: 30),
+                Center(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Close the dialog
+                      Navigator.of(context).pop();
+
+                      // Add the request to the requests tab
+                      final studentRequestsTabState =
+                          studentRequestsTabKey.currentState;
+                      if (studentRequestsTabState != null) {
+                        studentRequestsTabState.addRequest(
+                          widget.assetName,
+                          widget.imagePath,
+                        );
+                      } else {
+                        final tabState = StudentRequestsTab.of(context);
+                        tabState?.addRequest(
+                          widget.assetName,
+                          widget.imagePath,
+                        );
+                      }
+
+                      // Close the asset details page
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      }
+
+                      // Notify parent to switch to requests tab if callback is provided
+                      if (widget.onRequestAdded != null) {
+                        widget.onRequestAdded!();
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 30,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(fontSize: 16, color: Colors.white),
                     ),
                   ),
-                  child: const Text(
-                    'Close',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -124,10 +181,13 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isLargeScreen = screenSize.width > 600;
+
     return Scaffold(
       backgroundColor: primaryColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: primaryColor,
         elevation: 0,
         leading: const BackButton(color: bodyTextColor),
         title: Text(
@@ -138,241 +198,205 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
           ),
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Card(
-                    color: cardColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15.0),
-                    ),
-                    elevation: 4,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(15.0),
-                      child: Container(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Center(
-                          child: Image.asset(
-                            widget.imagePath,
-                            height: 250,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.broken_image,
-                                    color: Colors.grey,
-                                    size: 60,
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'Image unavailable',
-                                    style: TextStyle(color: Colors.grey),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
+      body: isLargeScreen
+          ? _buildLargeScreenLayout(screenSize)
+          : _buildSmallScreenLayout(),
+    );
+  }
 
-                  Text(
-                    widget.assetName,
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: bodyTextColor,
+  Widget _buildLargeScreenLayout(Size screenSize) {
+    return Center(
+      child: Container(
+        width: screenSize.width * 0.8,
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image Section
+            Flexible(
+              flex: 1,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  Row(
-                    children: [
-                      const Text(
-                        'Status: ',
-                        style: TextStyle(
-                          color: subtitleTextColor,
-                          fontSize: 16,
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: widget.imagePath.startsWith('http')
+                      ? Image.network(
+                          widget.imagePath,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.broken_image, size: 100),
+                        )
+                      : Image.asset(
+                          widget.imagePath,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.broken_image, size: 100),
                         ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: widget._getStatusColor().withOpacity(0.1),
-                          border: Border.all(
-                            color: widget._getStatusColor().withOpacity(0.1),
-                            width: 1,
-                          ),
-                        ),
-                        child: Text(
-                          widget.status,
-                          style: TextStyle(
-                            color: widget._getStatusColor(),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Borrow Date',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: bodyTextColor,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: _selectBorrowDate,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.calendar_today,
-                            color: Colors.grey,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            _borrowDate != null
-                                ? DateFormat(
-                                    'dd MMMM yyyy',
-                                  ).format(_borrowDate!)
-                                : 'Select borrow date',
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Return Date',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: bodyTextColor,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: _selectReturnDate,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.calendar_today,
-                            color: Colors.grey,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            _returnDate != null
-                                ? DateFormat(
-                                    'dd MMMM yyyy',
-                                  ).format(_returnDate!)
-                                : 'Select return date',
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
+            const SizedBox(width: 24),
+            // Details Section
+            Flexible(flex: 1, child: _buildDetailsSection()),
+          ],
+        ),
+      ),
+    );
+  }
 
+  Widget _buildSmallScreenLayout() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          // Image Section
           Container(
-            padding: const EdgeInsets.all(16.0),
-            color: primaryColor,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (_borrowDate == null || _returnDate == null)
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 8.0),
-                    child: Text(
-                      'Please select both borrow and return dates',
-                      style: TextStyle(
-                        color: Colors.orange,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _borrowDate != null && _returnDate != null
-                        ? buttonColor
-                        : Colors.grey,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                  ),
-                  onPressed: _borrowDate != null && _returnDate != null
-                      ? () {
-                          if (_borrowDate!.isAfter(_returnDate!)) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Return date must be after borrow date',
-                                ),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                            return;
-                          }
-                          _showSuccessDialog(context);
-                        }
-                      : null,
-                  child: const Text(
-                    'Request Borrow',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                  ),
+            width: double.infinity,
+            height: 250,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: widget.imagePath.startsWith('http')
+                  ? Image.network(
+                      widget.imagePath,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.broken_image, size: 100),
+                    )
+                  : Image.asset(
+                      widget.imagePath,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.broken_image, size: 100),
+                    ),
+            ),
           ),
+          const SizedBox(height: 24),
+          // Details Section
+          _buildDetailsSection(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDetailsSection() {
+    return Card(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+      elevation: 4,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Status Chip
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: widget._getStatusColor().withOpacity(0.2),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                widget.status.toUpperCase(),
+                style: TextStyle(
+                  color: widget._getStatusColor(),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Asset Details',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              widget.assetName,
+              style: const TextStyle(fontSize: 18, color: Colors.black),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Borrow Period (1 day)',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Borrow Date Picker
+            ListTile(
+              leading: const Icon(Icons.calendar_today, color: Colors.black),
+              title: const Text('Borrow Date'),
+              subtitle: Text(DateFormat('MMM dd, yyyy').format(_borrowDate)),
+              onTap: _selectBorrowDate,
+              tileColor: Colors.white.withOpacity(0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Return Date Picker
+            ListTile(
+              leading: const Icon(Icons.calendar_today, color: Colors.black),
+              title: const Text('Return Date'),
+              subtitle: Text(DateFormat('MMM dd, yyyy').format(_returnDate)),
+              onTap: _selectReturnDate,
+              tileColor: Colors.white.withOpacity(0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Request Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  _showSuccessDialog();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: buttonColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text(
+                  'Request to Borrow',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
