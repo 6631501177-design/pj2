@@ -1,8 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:pj2/register.dart';
 import 'package:pj2/lecturer_dashboard_tab.dart';
 import 'package:pj2/staff_main.dart';
 import 'package:pj2/student_main_screen.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+// ---
 
 const Color primaryColor = Color(0xFF0A4D68);
 const Color buttonColor = Color(0xFF4F709C);
@@ -18,35 +23,104 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   String? _errorMessage;
+  bool _isLoading = false;
 
-  void _login() {
+  final url = '192.168.1.121:3000';
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _login() async {
     setState(() {
+      _isLoading = true;
       _errorMessage = null;
     });
 
-    final username = _usernameController.text.trim();
-    final password = _passwordController.text.trim();
+    try {
+      final response = await http
+          .post(
+            Uri.http(url, '/login'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'username': _usernameController.text.trim(),
+              'password': _passwordController.text.trim(),
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
 
-    // Check credentials
-    if (username == 'student' && password == '0258') {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const StudentMainScreen()),
-      );
-    } else if (username == 'lecturer' && password == '1234') {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LecturerDashboard()),
-      );
-    } else if (username == 'staff' && password == '3456') {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const StaffMainScreen()),
-      );
-    } else {
-      setState(() {
-        _errorMessage = 'Invalid username or password';
-      });
+      if (!mounted) return;
+
+      final responseBody = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && responseBody['user'] != null) {
+        final userData = responseBody['user'];
+        final prefs = await SharedPreferences.getInstance();
+
+        // Save session cookie if available
+        final String? rawCookie = response.headers['set-cookie'];
+        if (rawCookie != null) {
+          String sessionCookie = rawCookie.split(';')[0];
+          await prefs.setString('sessionCookie', sessionCookie);
+        }
+
+        // Save user data
+        await prefs.setString('userData', jsonEncode(userData));
+
+        // Debug print to check the user data
+        print('User data received: $userData');
+        print('User role: ${userData['role']}');
+
+        Widget destination;
+        final role = (userData['role'] ?? 'student').toString().toLowerCase();
+        print('Normalized role: $role');
+
+        switch (role) {
+          case 'student':
+            destination = const StudentMainScreen();
+            break;
+          case 'lender':
+            destination = const LecturerDashboard();
+            break;
+          case 'staff':
+            destination = const StaffMainScreen();
+            break;
+          default:
+            throw Exception('Unknown user role: ${userData['role']}');
+        }
+
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => destination),
+        );
+      } else {
+        final body = jsonDecode(response.body);
+        setState(() {
+          _errorMessage = body['message'] ?? 'Invalid username or password';
+        });
+      }
+    } on TimeoutException {
+      _showErrorDialog('Connection timeout. Please try again.');
+    } catch (e) {
+      debugPrint('Login error: $e');
+      _showErrorDialog('Could not connect to server. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -59,6 +133,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ... (Your UI code is perfect, no changes needed here) ...
+    // ... (It's long so I'm omitting it, just keep your build method) ...
     return Scaffold(
       backgroundColor: primaryColor,
       body: SafeArea(
@@ -152,11 +228,25 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                   ),
-                  onPressed: _login,
-                  child: const Text(
-                    'Continue',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                  ),
+                  onPressed: _isLoading
+                      ? null
+                      : _login, // <-- Disable when loading
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 3,
+                          ),
+                        )
+                      : const Text(
+                          'Continue',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                 ),
                 const SizedBox(height: 24),
 
