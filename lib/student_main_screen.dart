@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pj2/student_assets_tab.dart';
-import 'package:pj2/student_requests_tab.dart';
+import 'package:pj2/status_page_edit.dart';
 import 'package:pj2/student_history_tab.dart';
 
 // --- Shared Colors ---
@@ -26,7 +26,7 @@ class _StudentMainScreenState extends State<StudentMainScreen> {
 
   static const List<Widget> _widgetOptions = <Widget>[
     StudentAssetsTab(),
-    StudentRequestsTab(),
+    StatusPage(), // This is already using StatusPage
     StudentHistoryTab(),
   ];
 

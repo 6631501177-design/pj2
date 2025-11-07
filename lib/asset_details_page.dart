@@ -1,9 +1,8 @@
-// import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:pj2/student_requests_tab.dart'
-    show studentRequestsTabKey, StudentRequestsTab;
-// import 'package:http/http.dart' as http;
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 const Color primaryColor = Color(0xFF0A4D68);
 const Color secondaryColor = Color(0xFF088395);
@@ -91,6 +90,45 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
     }
   }
 
+  Future<void> _submitBorrowRequest() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sessionCookie = prefs.getString('sessionCookie') ?? '';
+
+      final response = await http.post(
+        // Uri.parse('http://192.168.1.121:3000/api/borrow'),
+        Uri.parse('http://172.27.14.220:3000/api/borrow'),
+        headers: {'Content-Type': 'application/json', 'Cookie': sessionCookie},
+        body: jsonEncode({
+          'asset_id': widget.assetId,
+          'borrow_date': _borrowDate.toIso8601String(),
+          'return_date': _returnDate.toIso8601String(),
+        }),
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        if (mounted) {
+          await _showSuccessDialog();
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to submit request: ${response.body}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   Future<void> _showSuccessDialog() async {
     // Show success dialog
     await showDialog<void>(
@@ -129,21 +167,8 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
                       // Close the dialog
                       Navigator.of(context).pop();
 
-                      // Add the request to the requests tab
-                      final studentRequestsTabState =
-                          studentRequestsTabKey.currentState;
-                      if (studentRequestsTabState != null) {
-                        studentRequestsTabState.addRequest(
-                          widget.assetName,
-                          widget.imagePath,
-                        );
-                      } else {
-                        final tabState = StudentRequestsTab.of(context);
-                        tabState?.addRequest(
-                          widget.assetName,
-                          widget.imagePath,
-                        );
-                      }
+                      // The StatusPage will automatically refresh its data when navigated to
+                      // No need to manually update it here as it fetches fresh data from the server
 
                       // Close the asset details page
                       if (Navigator.of(context).canPop()) {
@@ -378,9 +403,7 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  _showSuccessDialog();
-                },
+                onPressed: _submitBorrowRequest,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: buttonColor,
                   foregroundColor: Colors.white,
