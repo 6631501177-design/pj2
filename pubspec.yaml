@@ -37,6 +37,8 @@ dependencies:
   http: ^1.5.0
   intl: ^0.20.2
   shared_preferences: ^2.5.3
+  dart_jsonwebtoken: ^3.3.1
+  flutter_secure_storage: ^9.2.4
 
 dev_dependencies:
   flutter_test:

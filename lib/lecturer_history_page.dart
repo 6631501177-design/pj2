@@ -2,7 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:pj2/lecturer_dashboard_tab.dart';
 import 'package:pj2/lecturer_browse_tab.dart';
 import 'package:pj2/lecturer_requested_tab.dart';
-import 'package:pj2/student_main_screen.dart';
+
+const Color primaryColor = Color(0xFF0A4D68);
+const Color secondaryColor = Color(0xFF088395);
+const Color cardColor = Color(0xFFFFFFFF);
+const Color cardTextColor = Colors.black;
+const Color bodyTextColor = Colors.white;
+const Color subtitleTextColor = Colors.white70;
+const Color availableColor = Color(0xFF28A745);
+const Color pendingColor = Color(0xFFFFA500);
+const Color buttonColor = Color(0xFF4F709C);
 
 class LecturerHistoryPage extends StatefulWidget {
   const LecturerHistoryPage({super.key});

@@ -1,8 +1,23 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:pj2/lecturer_dashboard_tab.dart';
 import 'package:pj2/lecturer_history_page.dart';
 import 'package:pj2/lecturer_requested_tab.dart';
-import 'package:pj2/student_main_screen.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+const Color primaryColor = Color(0xFF0A4D68);
+const Color secondaryColor = Color(0xFF088395);
+const Color cardColor = Color(0xFFFFFFFF);
+const Color cardTextColor = Colors.black;
+const Color bodyTextColor = Colors.white;
+const Color subtitleTextColor = Colors.white70;
+const Color availableColor = Color(0xFF28A745);
+const Color pendingColor = Color(0xFFFFA500);
+const Color buttonColor = Color(0xFF4F709C);
+
+// Using the same URL as your login.dart file
+const String url = '192.168.1.121:3000';
 
 class LecturerBrowseAssets extends StatefulWidget {
   const LecturerBrowseAssets({Key? key}) : super(key: key);
@@ -12,6 +27,68 @@ class LecturerBrowseAssets extends StatefulWidget {
 }
 
 class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
+  List<dynamic> _assets = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAssets();
+  }
+
+  Future<void> _fetchAssets() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? sessionCookie = prefs.getString('sessionCookie');
+
+      if (sessionCookie == null) {
+        throw Exception('Not logged in');
+      }
+
+      final response = await http
+          .get(
+            Uri.http(url, '/api/asset'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Cookie': sessionCookie, // Send the session cookie
+            },
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _assets = jsonDecode(response.body);
+          _isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load assets');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  // Helper function to get color from status string
+  Color _getColorForStatus(String status) {
+    switch (status.toLowerCase()) {
+      case 'available':
+        return const Color(0xFF4CAF50); // Green
+      case 'borrowed':
+        return const Color(0xFFF44336); // Red
+      case 'pending':
+        return const Color(0xFFFFA000); // Amber
+      case 'disable':
+        return const Color(0xFF9E9E9E); // Grey
+      default:
+        return const Color(0xFF9E9E9E); // Grey
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -35,8 +112,20 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
         child: Column(
           children: [
             _buildSearchBar(),
-
-            Expanded(child: _buildAssetsGrid()),
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    )
+                  : _errorMessage != null
+                  ? Center(
+                      child: Text(
+                        'Error: $_errorMessage',
+                        style: const TextStyle(color: Colors.orange),
+                      ),
+                    )
+                  : _buildAssetsGrid(),
+            ),
           ],
         ),
       ),
@@ -46,6 +135,7 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
 
   // Search Bar
   Widget _buildSearchBar() {
+    // ... (No changes needed to this widget) ...
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Container(
@@ -77,51 +167,7 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
   }
 
   Widget _buildAssetsGrid() {
-    final assets = [
-      {
-        'name': 'MacBook Air',
-        'image': 'assets/images/macbook.jpg',
-        'status': 'Available',
-        'statusColor': const Color(0xFF4CAF50),
-      },
-      {
-        'name': 'Asus ViVobook 15',
-        'image': 'assets/images/AsusVivo14.jpg',
-        'status': 'Available',
-        'statusColor': const Color(0xFF4CAF50),
-      },
-      {
-        'name': 'iPad Air',
-        'image': 'assets/images/IPad.jpg',
-        'status': 'Borrowed',
-        'statusColor': const Color(0xFFF44336),
-      },
-      {
-        'name': 'Samsung Tab S10+',
-        'image': 'assets/images/samsungs10.jpg',
-        'status': 'Available',
-        'statusColor': const Color(0xFF4CAF50),
-      },
-      {
-        'name': 'Canon EOS R10',
-        'image': 'assets/images/canon.jpg',
-        'status': 'Avaliable',
-        'statusColor': const Color(0xFF4CAF50),
-      },
-      {
-        'name': 'Wanbo T2R Max',
-        'image': 'assets/images/wanbo.jpg',
-        'status': 'disabled',
-        'statusColor': const Color(0xFF9E9E9E),
-      },
-      {
-        'name': 'Projector',
-        'image': 'assets/images/projector.jpg',
-        'status': 'Available',
-        'statusColor': const Color(0xFF4CAF50),
-      },
-    ];
-
+    // This now uses the fetched _assets list
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: GridView.builder(
@@ -133,13 +179,15 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
           childAspectRatio: 0.8,
           mainAxisExtent: 240, // Slightly taller cards
         ),
-        itemCount: assets.length,
+        itemCount: _assets.length, // Use fetched list length
         itemBuilder: (context, index) {
+          final asset = _assets[index];
+          final status = asset['status'] ?? 'Unknown';
           return _buildAssetCard(
-            name: assets[index]['name'] as String,
-            image: assets[index]['image'] as String,
-            status: assets[index]['status'] as String,
-            statusColor: assets[index]['statusColor'] as Color,
+            name: asset['asset_name'] ?? 'No Name',
+            image: asset['image'] ?? '', // URL from database
+            status: status,
+            statusColor: _getColorForStatus(status),
           );
         },
       ),
@@ -178,9 +226,26 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
               ),
               child: AspectRatio(
                 aspectRatio: 1.5,
-                child: Image.asset(
+                // Use Image.network to load from a URL
+                child: Image.network(
                   image.trim(),
                   fit: BoxFit.cover,
+                  // Placeholder while loading
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      color: Colors.grey[200],
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      ),
+                    );
+                  },
+                  // Error handler for bad URLs or network issues
                   errorBuilder: (context, error, stackTrace) => Container(
                     color: Colors.grey[200],
                     child: const Center(
@@ -254,6 +319,7 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
   }
 
   Widget _buildBottomNav() {
+    // ... (No changes needed to this widget) ...
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF2C5464),
@@ -304,6 +370,7 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
   }
 
   void _navigateTo(BuildContext context, Widget page) {
+    // ... (No changes needed to this widget) ...
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(
@@ -319,6 +386,7 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
     required bool isActive,
     required VoidCallback onTap,
   }) {
+    // ... (No changes needed to this widget) ...
     return InkWell(
       onTap: onTap,
       child: Column(

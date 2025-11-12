@@ -11,8 +11,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // --- API URL ---
 // Make sure this is your computer's IP
-const String _apiUrl = '192.168.1.121:3000';
-// Use '10.0.2.2:3000' if you run on an Android Emulator
+// const String _apiUrl = '192.168.1.121:3000';
+const String _apiUrl = '172.27.14.220:3000';
 
 class StudentAssetsTab extends StatefulWidget {
   const StudentAssetsTab({super.key});
