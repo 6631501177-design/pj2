@@ -16,8 +16,8 @@ const Color availableColor = Color(0xFF28A745);
 const Color pendingColor = Color(0xFFFFA500);
 const Color buttonColor = Color(0xFF4F709C);
 
-// Using the same URL as your login.dart file
-const String url = '192.168.1.121:3000';
+// const String url = '192.168.1.121:3000';
+// const String url = '10.0.2.2:3000';
 
 class LecturerBrowseAssets extends StatefulWidget {
   const LecturerBrowseAssets({Key? key}) : super(key: key);
@@ -83,6 +83,7 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
       case 'pending':
         return const Color(0xFFFFA000); // Amber
       case 'disable':
+      case 'disabled': // Handle both spellings
         return const Color(0xFF9E9E9E); // Grey
       default:
         return const Color(0xFF9E9E9E); // Grey
@@ -135,7 +136,6 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
 
   // Search Bar
   Widget _buildSearchBar() {
-    // ... (No changes needed to this widget) ...
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Container(
@@ -167,7 +167,15 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
   }
 
   Widget _buildAssetsGrid() {
-    // This now uses the fetched _assets list
+    if (_assets.isEmpty) {
+      return const Center(
+        child: Text(
+          'No assets found',
+          style: TextStyle(color: Colors.white, fontSize: 16),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: GridView.builder(
@@ -177,18 +185,35 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
           childAspectRatio: 0.8,
-          mainAxisExtent: 240, // Slightly taller cards
+          mainAxisExtent: 240,
         ),
-        itemCount: _assets.length, // Use fetched list length
+        itemCount: _assets.length,
         itemBuilder: (context, index) {
-          final asset = _assets[index];
-          final status = asset['status'] ?? 'Unknown';
-          return _buildAssetCard(
-            name: asset['asset_name'] ?? 'No Name',
-            image: asset['image'] ?? '', // URL from database
-            status: status,
-            statusColor: _getColorForStatus(status),
-          );
+          try {
+            final asset = _assets[index];
+            if (asset == null) return const SizedBox.shrink();
+
+            final status = asset['status']?.toString() ?? 'Unknown';
+
+            // --- UPDATED CODE ---
+            // Get the image path directly from the API
+            final String imagePath = asset['image']?.toString() ?? '';
+
+            return _buildAssetCard(
+              name: asset['asset_name']?.toString() ?? 'No Name',
+              imagePath: imagePath, // Pass the path, not a URL
+              status: status,
+              statusColor: _getColorForStatus(status),
+            );
+            // --- END UPDATED CODE ---
+          } catch (e) {
+            return const Center(
+              child: Text(
+                'Error loading asset',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
+            );
+          }
         },
       ),
     );
@@ -196,10 +221,13 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
 
   Widget _buildAssetCard({
     required String name,
-    required String image,
+    required String imagePath, // --- UPDATED ---
     required String status,
     required Color statusColor,
   }) {
+    // Clean up the image path just in case
+    final cleanImagePath = imagePath.replaceAll(RegExp(r'^[\\/]+'), '');
+
     return Card(
       elevation: 4,
       margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
@@ -226,37 +254,33 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
               ),
               child: AspectRatio(
                 aspectRatio: 1.5,
-                // Use Image.network to load from a URL
-                child: Image.network(
-                  image.trim(),
-                  fit: BoxFit.cover,
-                  // Placeholder while loading
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      color: Colors.grey[200],
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded /
-                                    loadingProgress.expectedTotalBytes!
-                              : null,
+                child: cleanImagePath.isNotEmpty
+                    ? Image.asset(
+                        // Use Image.asset()
+                        cleanImagePath, // Pass the path directly
+                        fit: BoxFit
+                            .contain, // Use contain to show the whole image
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: Colors.grey[200],
+                          child: const Center(
+                            child: Icon(
+                              Icons.broken_image,
+                              size: 40,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                      )
+                    : Container(
+                        color: Colors.grey[200],
+                        child: const Center(
+                          child: Icon(
+                            Icons.image_not_supported,
+                            size: 40,
+                            color: Colors.grey,
+                          ),
                         ),
                       ),
-                    );
-                  },
-                  // Error handler for bad URLs or network issues
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: Colors.grey[200],
-                    child: const Center(
-                      child: Icon(
-                        Icons.image_not_supported,
-                        size: 40,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                ),
               ),
             ),
             Padding(
@@ -319,7 +343,6 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
   }
 
   Widget _buildBottomNav() {
-    // ... (No changes needed to this widget) ...
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF2C5464),
@@ -370,7 +393,6 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
   }
 
   void _navigateTo(BuildContext context, Widget page) {
-    // ... (No changes needed to this widget) ...
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(
@@ -386,7 +408,6 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
     required bool isActive,
     required VoidCallback onTap,
   }) {
-    // ... (No changes needed to this widget) ...
     return InkWell(
       onTap: onTap,
       child: Column(
