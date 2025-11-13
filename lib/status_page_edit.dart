@@ -53,8 +53,8 @@ class _StatusPageState extends State<StatusPage> {
 
       print('Fetching borrow data...');
       final response = await http.get(
-        // Uri.parse('http://192.168.1.121:3000/api/borrow-requests/check'),
-        Uri.parse('http://172.27.14.220:3000/api/borrow-requests/check'),
+        Uri.parse('http://192.168.1.121:3000/api/borrow-requests/check'),
+        // Uri.parse('http://172.27.14.220:3000/api/borrow-requests/check'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -137,11 +137,12 @@ class _StatusPageState extends State<StatusPage> {
                 itemCount: borrowList.length,
                 itemBuilder: (context, index) {
                   final item = borrowList[index];
+                  // Parse dates and ensure they're in local timezone
                   final borrowDate = item['borrow_date'] != null
-                      ? DateTime.parse(item['borrow_date'])
+                      ? DateTime.parse(item['borrow_date']).toLocal()
                       : null;
                   final returnDate = item['return_date'] != null
-                      ? DateTime.parse(item['return_date'])
+                      ? DateTime.parse(item['return_date']).toLocal()
                       : null;
                   final status = (item['status'] ?? 'pending')
                       .toString()
@@ -208,10 +209,10 @@ class _StatusPageState extends State<StatusPage> {
                               ),
                             ),
 
-                          // Dates
-                          if (borrowDate != null || returnDate != null) ...[
-                            const Divider(height: 20, thickness: 1),
-                            Row(
+                          // Dates in a row
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Column(
@@ -225,9 +226,11 @@ class _StatusPageState extends State<StatusPage> {
                                       ),
                                     ),
                                     Text(
-                                      DateFormat(
-                                        'MMM dd, yyyy',
-                                      ).format(borrowDate!),
+                                      borrowDate != null
+                                          ? DateFormat(
+                                              'MMM dd, yyyy',
+                                            ).format(borrowDate)
+                                          : 'N/A',
                                       style: const TextStyle(fontSize: 14),
                                     ),
                                   ],
@@ -243,16 +246,18 @@ class _StatusPageState extends State<StatusPage> {
                                       ),
                                     ),
                                     Text(
-                                      DateFormat(
-                                        'MMM dd, yyyy',
-                                      ).format(returnDate!),
+                                      returnDate != null
+                                          ? DateFormat(
+                                              'MMM dd, yyyy',
+                                            ).format(returnDate)
+                                          : 'N/A',
                                       style: const TextStyle(fontSize: 14),
                                     ),
                                   ],
                                 ),
                               ],
                             ),
-                          ],
+                          ),
                         ],
                       ),
                     ),

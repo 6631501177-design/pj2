@@ -52,10 +52,16 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
   late DateTime _borrowDate;
   late DateTime _returnDate;
 
+  // Helper method to get today's date at local midnight
+  DateTime _getTodayAtMidnight() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
   @override
   void initState() {
     super.initState();
-    _borrowDate = DateTime.now();
+    _borrowDate = _getTodayAtMidnight();
     _returnDate = _borrowDate.add(const Duration(days: 1));
   }
 
@@ -63,14 +69,19 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _borrowDate,
-      firstDate: DateTime.now(),
+      firstDate: _getTodayAtMidnight(),
       lastDate: DateTime(2100),
     );
     if (picked != null) {
       setState(() {
-        _borrowDate = picked;
-        if (_returnDate.isBefore(picked)) {
-          _returnDate = picked.add(const Duration(days: 1));
+        // Ensure we're storing just the date part without time
+        _borrowDate = DateTime(picked.year, picked.month, picked.day);
+        if (_returnDate.isBefore(_borrowDate.add(const Duration(days: 1)))) {
+          _returnDate = DateTime(
+            _borrowDate.year,
+            _borrowDate.month,
+            _borrowDate.day + 1,
+          );
         }
       });
     }
@@ -85,7 +96,8 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
     );
     if (picked != null) {
       setState(() {
-        _returnDate = picked;
+        // Ensure we're storing just the date part without time
+        _returnDate = DateTime(picked.year, picked.month, picked.day);
       });
     }
   }
@@ -96,13 +108,14 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
       final sessionCookie = prefs.getString('sessionCookie') ?? '';
 
       final response = await http.post(
-        // Uri.parse('http://192.168.1.121:3000/api/borrow'),
-        Uri.parse('http://172.27.14.220:3000/api/borrow'),
+        Uri.parse('http://192.168.1.121:3000/api/borrow'),
+        // Uri.parse('http://172.27.14.220:3000/api/borrow'),
         headers: {'Content-Type': 'application/json', 'Cookie': sessionCookie},
         body: jsonEncode({
           'asset_id': widget.assetId,
-          'borrow_date': _borrowDate.toIso8601String(),
-          'return_date': _returnDate.toIso8601String(),
+          // Convert to UTC for the API
+          'borrow_date': _borrowDate.toUtc().toIso8601String(),
+          'return_date': _returnDate.toUtc().toIso8601String(),
         }),
       );
 
@@ -112,12 +125,44 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to submit request: ${response.body}'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          // Check if the error is about borrowing limit
+          if (response.body.contains('already borrowed') ||
+              response.body.contains('limit reached')) {
+            await showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Text('Borrowing Limit Reached'),
+                    ],
+                  ),
+                  content: const Text(
+                    'You can only borrow one asset per day.',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  actions: <Widget>[
+                    TextButton(
+                      child: const Text('OK'),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
+                );
+              },
+            );
+          } else {
+            // Show generic error for other cases
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to submit request: ${response.body}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
       }
     } catch (e) {
