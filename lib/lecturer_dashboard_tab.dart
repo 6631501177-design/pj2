@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:pj2/lecturer_browse_tab.dart';
 import 'package:pj2/lecturer_history_page.dart';
-import 'package:pj2/lecturer_requested_tab.dart';
+import 'package:pj2/lecturer_request_page.dart';
+// import 'package:pj2/lecturer_requested_tab.dart';
 import 'package:pj2/login.dart' as login_screen;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -80,7 +81,6 @@ class _LecturerDashboardState extends State<LecturerDashboard> {
   }
 
   void _logout() {
-    // Clear session and navigate to login
     SharedPreferences.getInstance().then((prefs) {
       prefs.clear();
       Navigator.pushAndRemoveUntil(
@@ -284,8 +284,7 @@ class _LecturerDashboardState extends State<LecturerDashboard> {
                 icon: Icons.list_alt,
                 label: 'Requested',
                 isActive: false,
-                onTap: () =>
-                    _navigateTo(context, const LecturerRequestedPage()),
+                onTap: () => _navigateTo(context, const LecturerRequestPage()),
               ),
               _buildNavItem(
                 icon: Icons.search,

@@ -108,8 +108,8 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
       final sessionCookie = prefs.getString('sessionCookie') ?? '';
 
       final response = await http.post(
-        Uri.parse('http://192.168.1.121:3000/api/borrow'),
-        // Uri.parse('http://172.27.14.220:3000/api/borrow'),
+        // Uri.parse('http://192.168.1.121:3000/api/borrow'),
+        Uri.parse('http://172.27.22.205:3000/api/borrow'),
         headers: {'Content-Type': 'application/json', 'Cookie': sessionCookie},
         body: jsonEncode({
           'asset_id': widget.assetId,

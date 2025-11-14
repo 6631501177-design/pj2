@@ -7,8 +7,8 @@ const Color primaryColor = Color(0xFF0A4D68);
 const Color buttonColor = Color(0xFF4F709C);
 
 // --- API URL ---
-// final url = '172.27.14.220:3000';
-final url = '192.168.1.121:3000';
+final url = '172.27.22.205:3000';
+// final url = '192.168.1.121:3000';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});

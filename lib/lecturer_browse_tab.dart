@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:pj2/lecturer_dashboard_tab.dart';
 import 'package:pj2/lecturer_history_page.dart';
-import 'package:pj2/lecturer_requested_tab.dart';
+import 'package:pj2/lecturer_request_page.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -28,6 +28,8 @@ class LecturerBrowseAssets extends StatefulWidget {
 
 class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
   List<dynamic> _assets = [];
+  List<dynamic> _filteredAssets = [];
+  final TextEditingController _searchController = TextEditingController();
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -35,6 +37,27 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
   void initState() {
     super.initState();
     _fetchAssets();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filterAssets(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredAssets = List.from(_assets);
+      } else {
+        _filteredAssets = _assets.where((asset) {
+          final name = asset['asset_name']?.toString().toLowerCase() ?? '';
+          final status = asset['status']?.toString().toLowerCase() ?? '';
+          return name.contains(query.toLowerCase()) ||
+              status.contains(query.toLowerCase());
+        }).toList();
+      }
+    });
   }
 
   Future<void> _fetchAssets() async {
@@ -59,6 +82,7 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
       if (response.statusCode == 200) {
         setState(() {
           _assets = jsonDecode(response.body);
+          _filteredAssets = List.from(_assets);
           _isLoading = false;
         });
       } else {
@@ -151,10 +175,21 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
           ],
         ),
         child: TextField(
+          controller: _searchController,
+          onChanged: _filterAssets,
           decoration: InputDecoration(
-            hintText: 'Search any assets',
+            hintText: 'Search by name or status...',
             hintStyle: TextStyle(color: Colors.grey[400], fontSize: 15),
             prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
+            suffixIcon: _searchController.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear, color: Colors.grey),
+                    onPressed: () {
+                      _searchController.clear();
+                      _filterAssets('');
+                    },
+                  )
+                : null,
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
@@ -167,11 +202,35 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
   }
 
   Widget _buildAssetsGrid() {
-    if (_assets.isEmpty) {
-      return const Center(
-        child: Text(
-          'No assets found',
-          style: TextStyle(color: Colors.white, fontSize: 16),
+    if (_filteredAssets.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.search_off,
+              size: 60,
+              color: Colors.white.withOpacity(0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _assets.isEmpty ? 'No assets found' : 'No matching assets',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.8),
+                fontSize: 16,
+              ),
+            ),
+            if (_assets.isNotEmpty && _searchController.text.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Try a different search term',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.6),
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ],
         ),
       );
     }
@@ -187,10 +246,10 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
           childAspectRatio: 0.8,
           mainAxisExtent: 240,
         ),
-        itemCount: _assets.length,
+        itemCount: _filteredAssets.length,
         itemBuilder: (context, index) {
           try {
-            final asset = _assets[index];
+            final asset = _filteredAssets[index];
             if (asset == null) return const SizedBox.shrink();
 
             final status = asset['status']?.toString() ?? 'Unknown';
@@ -370,8 +429,7 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
                 icon: Icons.list_alt,
                 label: 'Requested',
                 isActive: false,
-                onTap: () =>
-                    _navigateTo(context, const LecturerRequestedPage()),
+                onTap: () => _navigateTo(context, const LecturerRequestPage()),
               ),
               _buildNavItem(
                 icon: Icons.search,
@@ -393,6 +451,7 @@ class _LecturerBrowseAssetsState extends State<LecturerBrowseAssets> {
   }
 
   void _navigateTo(BuildContext context, Widget page) {
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(
