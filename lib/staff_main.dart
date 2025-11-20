@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:pj2/staff_edit_asset.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:pj2/staff_edit_assets_tab.dart';
 import 'package:pj2/staff_history_tab.dart';
 import 'package:pj2/staff_process_return_tab.dart';
 import 'package:pj2/staff_theme.dart';
@@ -22,7 +22,7 @@ class _StaffMainScreenState extends State<StaffMainScreen> {
 
   final List<Widget> _widgetOptions = <Widget>[
     const DashboardContent(),
-    const StaffEditAssetsTab(),
+    const StaffAssetPage(),
     const StaffProcessReturnTab(),
     const StaffHistoryTab(),
   ];
