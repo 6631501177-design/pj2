@@ -39,6 +39,7 @@ dependencies:
   shared_preferences: ^2.5.3
   dart_jsonwebtoken: ^3.3.1
   flutter_secure_storage: ^9.2.4
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:
