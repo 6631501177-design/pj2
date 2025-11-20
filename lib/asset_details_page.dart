@@ -128,11 +128,78 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
         if (mounted) {
           await _showSuccessDialog();
         }
-      } else {
+      } else if (response.statusCode == 400) {
         if (mounted) {
-          // Check if the error is about borrowing limit
           if (response.body.contains('already borrowed') ||
-              response.body.contains('limit reached')) {
+              response.body.contains('multiple times')) {
+            await showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (BuildContext context) {
+                return Dialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.warning_amber_rounded,
+                          color: Colors.orange,
+                          size: 60,
+                        ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Multiple Borrows Detected',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 15),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 10),
+                          child: Text(
+                            'This asset has been borrowed multiple times. Please check with staff if this is correct.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 25),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange,
+                              padding: const EdgeInsets.symmetric(vertical: 15),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                            ),
+                            child: const Text(
+                              'UNDERSTOOD',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          } else if (response.body.contains('limit reached')) {
             await showDialog(
               context: context,
               builder: (BuildContext context) {
@@ -151,9 +218,7 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
                   actions: <Widget>[
                     TextButton(
                       child: const Text('OK'),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
+                      onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
                 );
@@ -167,6 +232,15 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
               ),
             );
           }
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${response.statusCode} - ${response.body}'),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
       }
     } catch (e) {

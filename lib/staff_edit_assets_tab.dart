@@ -22,9 +22,8 @@ class _StaffEditAssetsTabState extends State<StaffEditAssetsTab> {
   bool _isLoading = true;
 
   @override
-  void initState() {
-    super.initState();
-    _fetchAssets();
+  void dispose() {
+    super.dispose();
   }
 
   Future<void> _fetchAssets() async {
@@ -45,10 +44,37 @@ class _StaffEditAssetsTabState extends State<StaffEditAssetsTab> {
 
   Future<void> _toggleStatus(int id, String currentStatus) async {
     final newStatus = (currentStatus == 'Disable') ? 'Available' : 'Disable';
+    final action = (currentStatus == 'Disable') ? 'enable' : 'disable';
+
+    // Show confirmation dialog
+    final confirmed =
+        await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('Confirm $action asset'),
+            content: Text('Are you sure you want to $action this asset?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.blue),
+                child: Text('Yes, $action'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (!confirmed) return; // User cancelled
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final cookie = prefs.getString('sessionCookie');
 
+      setState(() => _isLoading = true);
       final response = await http.patch(
         Uri.parse('$_baseUrl/api/assets/$id/status'),
         headers: {'Cookie': cookie ?? '', 'Content-Type': 'application/json'},
@@ -56,15 +82,65 @@ class _StaffEditAssetsTabState extends State<StaffEditAssetsTab> {
       );
 
       if (response.statusCode == 200) {
-        _fetchAssets();
+        await _fetchAssets();
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Asset $newStatus')));
+          // Show success dialog
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              title: const Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 60,
+              ),
+              content: Text(
+                'Asset ${newStatus.toLowerCase()}d successfully',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 18),
+              ),
+              actions: [
+                Center(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(
+                      foregroundColor: staffButtonBlue,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('OK', style: TextStyle(fontSize: 16)),
+                  ),
+                ),
+              ],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              contentPadding: const EdgeInsets.only(
+                top: 20,
+                bottom: 16,
+                left: 24,
+                right: 24,
+              ),
+            ),
+          );
         }
+      } else {
+        throw Exception('Failed to update status: ${response.statusCode}');
       }
     } catch (e) {
       print("Error toggling status: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -226,7 +302,11 @@ class _StaffEditAssetsTabState extends State<StaffEditAssetsTab> {
             Text(
               asset['status'] ?? '',
               style: TextStyle(
-                color: isDisabled ? Colors.red : Colors.green,
+                color: asset['status']?.toLowerCase() == 'available'
+                    ? Colors.green
+                    : asset['status']?.toLowerCase() == 'borrowed'
+                    ? Colors.orange
+                    : Colors.grey,
                 fontSize: 12,
               ),
             ),
@@ -342,7 +422,6 @@ class StaffEditAssetPage extends StatefulWidget {
 
 class _StaffEditAssetPageState extends State<StaffEditAssetPage> {
   late TextEditingController _nameController;
-  late String _selectedStatus;
   File? _newImage;
   bool _isSubmitting = false;
   final ImagePicker _picker = ImagePicker();
@@ -351,7 +430,6 @@ class _StaffEditAssetPageState extends State<StaffEditAssetPage> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.asset['asset_name']);
-    _selectedStatus = widget.asset['status'] ?? 'Available';
   }
 
   Future<void> _pickImage() async {
@@ -372,7 +450,8 @@ class _StaffEditAssetPageState extends State<StaffEditAssetPage> {
       );
       request.headers['Cookie'] = cookie ?? '';
       request.fields['asset_name'] = _nameController.text;
-      request.fields['status'] = _selectedStatus;
+
+      // Status field removed as staff shouldn't be able to change it
 
       if (_newImage != null) {
         request.files.add(
@@ -474,19 +553,8 @@ class _StaffEditAssetPageState extends State<StaffEditAssetPage> {
                   border: OutlineInputBorder(),
                 ),
               ),
+              // Status field removed as staff shouldn't be able to change it
               const SizedBox(height: 20),
-              DropdownButtonFormField<String>(
-                value: _selectedStatus,
-                decoration: const InputDecoration(
-                  labelText: 'Status',
-                  border: OutlineInputBorder(),
-                ),
-                items: ['Available', 'Disable', 'Pending', 'Borrowed']
-                    .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                    .toList(),
-                onChanged: (val) => setState(() => _selectedStatus = val!),
-              ),
-              const SizedBox(height: 30),
               SizedBox(
                 width: double.infinity,
                 height: 50,

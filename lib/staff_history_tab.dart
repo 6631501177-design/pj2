@@ -4,6 +4,9 @@ import 'package:pj2/staff_theme.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+// UPDATE THIS IP TO MATCH YOUR SERVER
+const String _baseUrl = 'http://192.168.1.121:3000';
+
 class StaffHistoryTab extends StatefulWidget {
   const StaffHistoryTab({Key? key}) : super(key: key);
 
@@ -15,9 +18,6 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  final String _baseUrl = 'http://192.168.1.121:3000';
-  // final String _baseUrl = 'http://172.22.112.1:3000';
-
   List<dynamic> _allHistory = [];
   bool _isLoading = true;
 
@@ -28,9 +28,7 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
   }
 
   Future<void> _loadHistory() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -47,7 +45,6 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
         setState(() {
           _allHistory = data;
           _isLoading = false;
@@ -57,33 +54,20 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
       }
     } catch (e) {
       print("Error: $e");
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   List<dynamic> get _filteredHistory {
     if (_searchQuery.isEmpty) return _allHistory;
-
     return _allHistory.where((history) {
-      // FIX: Use keys that match app.js
       final assetName = (history['asset_name'] ?? '').toString().toLowerCase();
       final borrowerName = (history['borrower_name'] ?? '')
           .toString()
           .toLowerCase();
       final q = _searchQuery.toLowerCase();
-
       return assetName.contains(q) || borrowerName.contains(q);
     }).toList();
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 
   @override
@@ -114,17 +98,10 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 8.0,
-            ),
+            padding: const EdgeInsets.all(16.0),
             child: TextField(
               controller: _searchController,
-              onChanged: (query) {
-                setState(() {
-                  _searchQuery = query;
-                });
-              },
+              onChanged: (query) => setState(() => _searchQuery = query),
               decoration: InputDecoration(
                 hintText: 'Search by asset / borrower',
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
@@ -153,8 +130,7 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
                     padding: const EdgeInsets.all(16),
                     itemCount: filteredHistory.length,
                     itemBuilder: (context, index) {
-                      final history = filteredHistory[index];
-                      return _buildHistoryCard(history);
+                      return _buildHistoryCard(filteredHistory[index]);
                     },
                   ),
           ),
@@ -164,26 +140,22 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
   }
 
   Widget _buildHistoryCard(Map<String, dynamic> history) {
-    // FIX: Use keys that match app.js
+    // Data Mapping from app.js
     final assetName = history['asset_name'] ?? 'N/A';
     final borrowerName = history['borrower_name'] ?? 'N/A';
     final approverName = history['lender_name'] ?? 'N/A';
-    final staffName = history['staff_name']; // Can be null
+    final staffName = history['staff_name']; // Can be null if not returned yet
     final borrowDate = history['borrow_date'];
     final returnDate = history['return_date'];
-
     final status = history['status']?.toString() ?? 'unknown';
     final statusColor = _getStatusColor(status);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Colors.white,
-      elevation: 3,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -194,7 +166,6 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
                     ),
                   ),
                 ),
@@ -211,51 +182,35 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
                     status.toUpperCase(),
                     style: TextStyle(
                       color: statusColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ],
             ),
             const Divider(height: 24),
-
             _buildDetailRow('Borrowed by', borrowerName),
             const SizedBox(height: 8),
-
             _buildDetailRow('Borrowed', _formatDate(borrowDate)),
-
-            if (returnDate != null && returnDate != 'N/A') ...[
+            if (returnDate != null) ...[
               const SizedBox(height: 8),
               _buildDetailRow('Returned', _formatDate(returnDate)),
             ],
-
             const SizedBox(height: 8),
             _buildDetailRow('Approved by', approverName),
-
             if (staffName != null) ...[
               const SizedBox(height: 8),
-              _buildDetailRow('Return approved by', staffName),
+              _buildDetailRow('Return processed by', staffName),
             ],
-
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                  onPressed: () {
-                    _showDetailsDialog(context, history);
-                  },
+                  onPressed: () => _showDetailsDialog(context, history),
                   style: TextButton.styleFrom(
                     foregroundColor: staffButtonBlue,
                     backgroundColor: staffButtonBlue.withOpacity(0.1),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
                   ),
                   child: const Text('View Details'),
                 ),
@@ -273,20 +228,12 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
       children: [
         SizedBox(
           width: 140,
-          child: Text(
-            label,
-            style: const TextStyle(color: Colors.grey, fontSize: 14),
-          ),
+          child: Text(label, style: const TextStyle(color: Colors.grey)),
         ),
-        const SizedBox(width: 8),
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-              fontWeight: FontWeight.w500,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.w500),
           ),
         ),
       ],
@@ -311,17 +258,13 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
     if (date == null || date.toString() == 'N/A') return 'N/A';
     try {
       final parsed = DateTime.parse(date.toString());
-      return '${parsed.day.toString().padLeft(2, '0')}/'
-          '${parsed.month.toString().padLeft(2, '0')}/'
-          '${parsed.year}';
+      return '${parsed.day}/${parsed.month}/${parsed.year}';
     } catch (e) {
-      return date
-          .toString(); // Return original string if already formatted by SQL
+      return date.toString();
     }
   }
 
   void _showDetailsDialog(BuildContext context, Map<String, dynamic> history) {
-    // FIX: Use keys that match app.js
     final assetName = history['asset_name'] ?? 'N/A';
     final borrowerName = history['borrower_name'] ?? 'N/A';
     final approverName = history['lender_name'] ?? 'N/A';
@@ -341,7 +284,7 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
               _buildDetailRowDialog('Borrower', borrowerName),
               const SizedBox(height: 8),
               _buildDetailRowDialog('Borrowed On', _formatDate(borrowDate)),
-              if (returnDate != null && returnDate != 'N/A') ...[
+              if (returnDate != null) ...[
                 const SizedBox(height: 8),
                 _buildDetailRowDialog('Returned On', _formatDate(returnDate)),
               ],
@@ -385,8 +328,11 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
   }
 }
 
+// import 'dart:convert';
 // import 'package:flutter/material.dart';
 // import 'package:pj2/staff_theme.dart';
+// import 'package:http/http.dart' as http;
+// import 'package:shared_preferences/shared_preferences.dart';
 
 // class StaffHistoryTab extends StatefulWidget {
 //   const StaffHistoryTab({Key? key}) : super(key: key);
@@ -399,74 +345,68 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
 //   final TextEditingController _searchController = TextEditingController();
 //   String _searchQuery = '';
 
-//   final List<Map<String, dynamic>> _allHistory = [
-//     {
-//       'assetName': 'iPad Air 5th Gen',
-//       'borrowerName': 'Barry Allen',
-//       'approverName': 'Dr. Harrison Wells',
-//       'borrowDate': DateTime(2025, 10, 20),
-//       'returnDate': DateTime(2025, 10, 22),
-//       'Processed By': 'Cisco Ramon',
-//       'status': 'returned',
-//     },
-//     {
-//       'assetName': 'Canon EOS R10',
-//       'borrowerName': 'Iris West',
-//       'approverName': 'Dr. Harrison Wells',
-//       'borrowDate': DateTime(2025, 10, 21),
-//       'returnDate': DateTime(2025, 10, 22),
-//       'Processed By': 'Cisco Ramon',
-//       'status': 'borrowed',
-//     },
-//     {
-//       'assetName': 'Macbook Air',
-//       'borrowerName': 'Oliver Queen',
-//       'approverName': 'Dr. Harrison Wells',
-//       'borrowDate': DateTime(2025, 10, 22),
-//       'returnDate': DateTime(2025, 10, 24),
-//       'Processed By': 'Cisco Ramon',
-//       'status': 'returned',
-//     },
-//     {
-//       'assetName': 'Asus VivoBook 14',
-//       'borrowerName': 'Caitlin Snow',
-//       'approverName': 'Dr. Harrison Wells',
-//       'borrowDate': DateTime(2025, 10, 18),
-//       'returnDate': DateTime(2025, 10, 20),
-//       'Processed By': 'Cisco Ramon',
-//       'status': 'returned',
-//     },
-//     {
-//       'assetName': 'IPad Air',
-//       'borrowerName': 'Stiles Stilinski',
-//       'approverName': 'Dr. Harrison Wells',
-//       'borrowDate': DateTime(2025, 10, 21),
-//       'returnDate': DateTime(2025, 10, 23),
-//       'Processed By': 'Cisco Ramon',
-//       'status': 'returned',
-//     },
-//     {
-//       'assetName': 'Macbook Air',
-//       'borrowerName': 'Stiles Stilinski',
-//       'approverName': 'Dr. Harrison Wells',
-//       'borrowDate': DateTime(2025, 10, 18),
-//       'returnDate': DateTime(2025, 10, 20),
-//       'Processed By': 'Cisco Ramon',
-//       'status': 'returned',
-//     },
-//   ];
+//   final String _baseUrl = 'http://192.168.1.121:3000';
+//   // final String _baseUrl = 'http://172.22.112.1:3000';
 
-//   List<Map<String, dynamic>> get _filteredHistory {
+//   List<dynamic> _allHistory = [];
+//   bool _isLoading = true;
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _loadHistory();
+//   }
+
+//   Future<void> _loadHistory() async {
+//     setState(() {
+//       _isLoading = true;
+//     });
+
+//     try {
+//       final prefs = await SharedPreferences.getInstance();
+//       final String? cookie = prefs.getString('sessionCookie');
+
+//       if (cookie == null) {
+//         throw Exception('You must be logged in to view history.');
+//       }
+
+//       final response = await http.get(
+//         Uri.parse('$_baseUrl/api/history'),
+//         headers: {'Cookie': cookie},
+//       );
+
+//       if (response.statusCode == 200) {
+//         final data = jsonDecode(response.body);
+
+//         setState(() {
+//           _allHistory = data;
+//           _isLoading = false;
+//         });
+//       } else {
+//         throw Exception('Failed to load history: ${response.statusCode}');
+//       }
+//     } catch (e) {
+//       print("Error: $e");
+//       if (mounted) {
+//         setState(() {
+//           _isLoading = false;
+//         });
+//       }
+//     }
+//   }
+
+//   List<dynamic> get _filteredHistory {
+//     if (_searchQuery.isEmpty) return _allHistory;
+
 //     return _allHistory.where((history) {
-//       final matchesSearch =
-//           _searchQuery.isEmpty ||
-//           (history['assetName']?.toLowerCase() ?? '').contains(
-//             _searchQuery.toLowerCase(),
-//           ) ||
-//           (history['borrowerName']?.toLowerCase() ?? '').contains(
-//             _searchQuery.toLowerCase(),
-//           );
-//       return matchesSearch;
+//       // FIX: Use keys that match app.js
+//       final assetName = (history['asset_name'] ?? '').toString().toLowerCase();
+//       final borrowerName = (history['borrower_name'] ?? '')
+//           .toString()
+//           .toLowerCase();
+//       final q = _searchQuery.toLowerCase();
+
+//       return assetName.contains(q) || borrowerName.contains(q);
 //     }).toList();
 //   }
 
@@ -494,6 +434,12 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
 //             fontWeight: FontWeight.w500,
 //           ),
 //         ),
+//         actions: [
+//           IconButton(
+//             icon: const Icon(Icons.refresh, color: Colors.white),
+//             onPressed: _loadHistory,
+//           ),
+//         ],
 //       ),
 //       body: Column(
 //         children: [
@@ -510,7 +456,7 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
 //                 });
 //               },
 //               decoration: InputDecoration(
-//                 hintText: 'Search by asset',
+//                 hintText: 'Search by asset / borrower',
 //                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
 //                 filled: true,
 //                 fillColor: Colors.white,
@@ -518,12 +464,15 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
 //                   borderRadius: BorderRadius.circular(12),
 //                   borderSide: BorderSide.none,
 //                 ),
-//                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
 //               ),
 //             ),
 //           ),
 //           Expanded(
-//             child: filteredHistory.isEmpty
+//             child: _isLoading
+//                 ? const Center(
+//                     child: CircularProgressIndicator(color: Colors.white),
+//                   )
+//                 : filteredHistory.isEmpty
 //                 ? const Center(
 //                     child: Text(
 //                       'No matching records found',
@@ -545,6 +494,14 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
 //   }
 
 //   Widget _buildHistoryCard(Map<String, dynamic> history) {
+//     // FIX: Use keys that match app.js
+//     final assetName = history['asset_name'] ?? 'N/A';
+//     final borrowerName = history['borrower_name'] ?? 'N/A';
+//     final approverName = history['lender_name'] ?? 'N/A';
+//     final staffName = history['staff_name']; // Can be null
+//     final borrowDate = history['borrow_date'];
+//     final returnDate = history['return_date'];
+
 //     final status = history['status']?.toString() ?? 'unknown';
 //     final statusColor = _getStatusColor(status);
 
@@ -563,7 +520,7 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
 //               children: [
 //                 Expanded(
 //                   child: Text(
-//                     history['assetName'] ?? 'N/A',
+//                     assetName,
 //                     style: const TextStyle(
 //                       fontSize: 18,
 //                       fontWeight: FontWeight.bold,
@@ -592,24 +549,23 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
 //               ],
 //             ),
 //             const Divider(height: 24),
-//             _buildDetailRow('Borrowed by', history['borrowerName'] ?? 'N/A'),
+
+//             _buildDetailRow('Borrowed by', borrowerName),
 //             const SizedBox(height: 8),
-//             _buildDetailRow(
-//               'Borrowed',
-//               _formatDate(history['borrowDate'] as DateTime),
-//             ),
-//             if (history['returnDate'] != null) ...[
+
+//             _buildDetailRow('Borrowed', _formatDate(borrowDate)),
+
+//             if (returnDate != null && returnDate != 'N/A') ...[
 //               const SizedBox(height: 8),
-//               _buildDetailRow(
-//                 'Returned',
-//                 _formatDate(history['returnDate'] as DateTime),
-//               ),
+//               _buildDetailRow('Returned', _formatDate(returnDate)),
 //             ],
+
 //             const SizedBox(height: 8),
-//             _buildDetailRow('Approved by', history['approverName'] ?? 'N/A'),
-//             if (history['Processed By'] != null) ...[
+//             _buildDetailRow('Approved by', approverName),
+
+//             if (staffName != null) ...[
 //               const SizedBox(height: 8),
-//               _buildDetailRow('Return approved by', history['Processed By']),
+//               _buildDetailRow('Return approved by', staffName),
 //             ],
 
 //             const SizedBox(height: 16),
@@ -672,56 +628,59 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
 //       case 'borrowed':
 //         return Colors.orange;
 //       case 'returned':
-//       default:
+//       case 'approved':
 //         return Colors.green;
+//       case 'disapproved':
+//         return Colors.red;
+//       default:
+//         return Colors.blueGrey;
 //     }
 //   }
 
-//   String _formatDate(DateTime date) {
-//     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+//   String _formatDate(dynamic date) {
+//     if (date == null || date.toString() == 'N/A') return 'N/A';
+//     try {
+//       final parsed = DateTime.parse(date.toString());
+//       return '${parsed.day.toString().padLeft(2, '0')}/'
+//           '${parsed.month.toString().padLeft(2, '0')}/'
+//           '${parsed.year}';
+//     } catch (e) {
+//       return date
+//           .toString(); // Return original string if already formatted by SQL
+//     }
 //   }
 
 //   void _showDetailsDialog(BuildContext context, Map<String, dynamic> history) {
+//     // FIX: Use keys that match app.js
+//     final assetName = history['asset_name'] ?? 'N/A';
+//     final borrowerName = history['borrower_name'] ?? 'N/A';
+//     final approverName = history['lender_name'] ?? 'N/A';
+//     final staffName = history['staff_name'] ?? 'N/A';
+//     final borrowDate = history['borrow_date'];
+//     final returnDate = history['return_date'];
+//     final status = history['status']?.toString() ?? 'N/A';
+
 //     showDialog(
 //       context: context,
 //       builder: (context) => AlertDialog(
-//         title: Text('Details - ${history['assetName'] ?? 'Asset'}'),
+//         title: Text('Details - $assetName'),
 //         content: SingleChildScrollView(
 //           child: Column(
 //             crossAxisAlignment: CrossAxisAlignment.start,
-//             mainAxisSize: MainAxisSize.min,
 //             children: [
-//               _buildDetailRowDialog(
-//                 'Borrower',
-//                 history['borrowerName'] ?? 'N/A',
-//               ),
+//               _buildDetailRowDialog('Borrower', borrowerName),
 //               const SizedBox(height: 8),
-//               _buildDetailRowDialog(
-//                 'Borrowed On',
-//                 _formatDate(history['borrowDate'] as DateTime),
-//               ),
-//               if (history['returnDate'] != null) ...[
+//               _buildDetailRowDialog('Borrowed On', _formatDate(borrowDate)),
+//               if (returnDate != null && returnDate != 'N/A') ...[
 //                 const SizedBox(height: 8),
-//                 _buildDetailRowDialog(
-//                   'Returned On',
-//                   _formatDate(history['returnDate'] as DateTime),
-//                 ),
+//                 _buildDetailRowDialog('Returned On', _formatDate(returnDate)),
 //               ],
 //               const SizedBox(height: 8),
-//               _buildDetailRowDialog(
-//                 'Status',
-//                 (history['status'] ?? 'N/A').toString().toUpperCase(),
-//               ),
+//               _buildDetailRowDialog('Status', status.toUpperCase()),
 //               const Divider(height: 20),
-//               _buildDetailRowDialog(
-//                 'Approved by',
-//                 history['approverName'] ?? 'N/A',
-//               ),
+//               _buildDetailRowDialog('Approved by', approverName),
 //               const SizedBox(height: 8),
-//               _buildDetailRowDialog(
-//                 'Return Processed by',
-//                 history['Processed By'] ?? 'N/A',
-//               ),
+//               _buildDetailRowDialog('Return Processed by', staffName),
 //             ],
 //           ),
 //         ),
@@ -742,7 +701,7 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
 //         crossAxisAlignment: CrossAxisAlignment.start,
 //         children: [
 //           SizedBox(
-//             width: 100,
+//             width: 110,
 //             child: Text(
 //               label,
 //               style: const TextStyle(fontWeight: FontWeight.bold),
