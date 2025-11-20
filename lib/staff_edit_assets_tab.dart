@@ -19,10 +19,13 @@ class StaffEditAssetsTab extends StatefulWidget {
 
 class _StaffEditAssetsTabState extends State<StaffEditAssetsTab> {
   List<dynamic> _assets = [];
+  List<dynamic> _filteredAssets = [];
   bool _isLoading = true;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void dispose() {
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -33,6 +36,7 @@ class _StaffEditAssetsTabState extends State<StaffEditAssetsTab> {
       if (response.statusCode == 200) {
         setState(() {
           _assets = jsonDecode(response.body);
+          _filteredAssets = List.from(_assets);
           _isLoading = false;
         });
       }
@@ -196,17 +200,44 @@ class _StaffEditAssetsTabState extends State<StaffEditAssetsTab> {
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) {
+                      setState(() {
+                        if (value.isEmpty) {
+                          _filteredAssets = List.from(_assets);
+                        } else {
+                          _filteredAssets = _assets.where((asset) {
+                            final name =
+                                asset['asset_name']?.toString().toLowerCase() ??
+                                '';
+                            final searchLower = value.toLowerCase();
+                            return name.contains(searchLower);
+                          }).toList();
+                        }
+                      });
+                    },
                     decoration: InputDecoration(
                       hintText: 'Search assets...',
-                      prefixIcon: Icon(Icons.search, color: Colors.grey),
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
                       filled: true,
                       fillColor: Colors.white,
-                      border: OutlineInputBorder(
+                      border: const OutlineInputBorder(
                         borderRadius: BorderRadius.all(Radius.circular(10)),
                         borderSide: BorderSide.none,
                       ),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, color: Colors.grey),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() {
+                                  _filteredAssets = List.from(_assets);
+                                });
+                              },
+                            )
+                          : null,
                     ),
                   ),
                 ),
@@ -251,9 +282,9 @@ class _StaffEditAssetsTabState extends State<StaffEditAssetsTab> {
                           mainAxisSpacing: 16,
                           childAspectRatio: 0.60, // Adjusted for buttons
                         ),
-                    itemCount: _assets.length,
+                    itemCount: _filteredAssets.length,
                     itemBuilder: (context, index) {
-                      return _buildAssetCard(_assets[index]);
+                      return _buildAssetCard(_filteredAssets[index]);
                     },
                   ),
           ),

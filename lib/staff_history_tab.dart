@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:pj2/staff_theme.dart';
@@ -17,7 +18,7 @@ class StaffHistoryTab extends StatefulWidget {
 class _StaffHistoryTabState extends State<StaffHistoryTab> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-
+  Timer? _debounce;
   List<dynamic> _allHistory = [];
   bool _isLoading = true;
 
@@ -25,6 +26,7 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
   void initState() {
     super.initState();
     _loadHistory();
+    _searchController.addListener(_onSearchChanged);
   }
 
   Future<void> _loadHistory() async {
@@ -60,13 +62,18 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
 
   List<dynamic> get _filteredHistory {
     if (_searchQuery.isEmpty) return _allHistory;
+
+    final query = _searchQuery.toLowerCase();
     return _allHistory.where((history) {
       final assetName = (history['asset_name'] ?? '').toString().toLowerCase();
       final borrowerName = (history['borrower_name'] ?? '')
           .toString()
           .toLowerCase();
-      final q = _searchQuery.toLowerCase();
-      return assetName.contains(q) || borrowerName.contains(q);
+      final staffName = (history['staff_name'] ?? '').toString().toLowerCase();
+
+      return assetName.contains(query) ||
+          borrowerName.contains(query) ||
+          staffName.contains(query);
     }).toList();
   }
 
@@ -101,7 +108,9 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
             padding: const EdgeInsets.all(16.0),
             child: TextField(
               controller: _searchController,
-              onChanged: (query) => setState(() => _searchQuery = query),
+              onChanged: (query) {
+                _onSearchChanged();
+              },
               decoration: InputDecoration(
                 hintText: 'Search by asset / borrower',
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
@@ -326,98 +335,25 @@ class _StaffHistoryTabState extends State<StaffHistoryTab> {
       ),
     );
   }
+
+  void _onSearchChanged() {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() {
+          _searchQuery = _searchController.text.trim();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
 }
-
-// import 'dart:convert';
-// import 'package:flutter/material.dart';
-// import 'package:pj2/staff_theme.dart';
-// import 'package:http/http.dart' as http;
-// import 'package:shared_preferences/shared_preferences.dart';
-
-// class StaffHistoryTab extends StatefulWidget {
-//   const StaffHistoryTab({Key? key}) : super(key: key);
-
-//   @override
-//   _StaffHistoryTabState createState() => _StaffHistoryTabState();
-// }
-
-// class _StaffHistoryTabState extends State<StaffHistoryTab> {
-//   final TextEditingController _searchController = TextEditingController();
-//   String _searchQuery = '';
-
-//   final String _baseUrl = 'http://192.168.1.121:3000';
-//   // final String _baseUrl = 'http://172.22.112.1:3000';
-
-//   List<dynamic> _allHistory = [];
-//   bool _isLoading = true;
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     _loadHistory();
-//   }
-
-//   Future<void> _loadHistory() async {
-//     setState(() {
-//       _isLoading = true;
-//     });
-
-//     try {
-//       final prefs = await SharedPreferences.getInstance();
-//       final String? cookie = prefs.getString('sessionCookie');
-
-//       if (cookie == null) {
-//         throw Exception('You must be logged in to view history.');
-//       }
-
-//       final response = await http.get(
-//         Uri.parse('$_baseUrl/api/history'),
-//         headers: {'Cookie': cookie},
-//       );
-
-//       if (response.statusCode == 200) {
-//         final data = jsonDecode(response.body);
-
-//         setState(() {
-//           _allHistory = data;
-//           _isLoading = false;
-//         });
-//       } else {
-//         throw Exception('Failed to load history: ${response.statusCode}');
-//       }
-//     } catch (e) {
-//       print("Error: $e");
-//       if (mounted) {
-//         setState(() {
-//           _isLoading = false;
-//         });
-//       }
-//     }
-//   }
-
-//   List<dynamic> get _filteredHistory {
-//     if (_searchQuery.isEmpty) return _allHistory;
-
-//     return _allHistory.where((history) {
-//       // FIX: Use keys that match app.js
-//       final assetName = (history['asset_name'] ?? '').toString().toLowerCase();
-//       final borrowerName = (history['borrower_name'] ?? '')
-//           .toString()
-//           .toLowerCase();
-//       final q = _searchQuery.toLowerCase();
-
-//       return assetName.contains(q) || borrowerName.contains(q);
-//     }).toList();
-//   }
-
-//   @override
-//   void dispose() {
-//     _searchController.dispose();
-//     super.dispose();
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
 //     final filteredHistory = _filteredHistory;
 
 //     return Scaffold(
