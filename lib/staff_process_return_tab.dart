@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pj2/staff_theme.dart';
 
 class StaffProcessReturnTab extends StatefulWidget {
@@ -9,27 +12,88 @@ class StaffProcessReturnTab extends StatefulWidget {
 }
 
 class _StaffProcessReturnTabState extends State<StaffProcessReturnTab> {
-  //gonna replace with actual data
-  final List<Map<String, dynamic>> _returnItems = [
-    {
-      'assetName': 'iPad Air',
-      'borrower': 'Stiles',
-      'approver': 'Dr. Harrison Wells',
-      'borrowDate': '2/10/2025',
-      'returnDate': '12/10/2025',
-      'staff': 'John Diggle',
-      'image': 'assets/images/IPad.jpg',
-    },
-    {
-      'assetName': 'Asus VivoBook 14',
-      'borrower': 'Mark',
-      'approver': 'Dr. Martin Stein',
-      'borrowDate': '5/10/2025',
-      'returnDate': '15/10/2025',
-      'staff': 'Cisco Ramon',
-      'image': 'assets/images/AsusVivo14.jpg',
-    },
-  ];
+  // Use the IP that matches your setup
+  final String _baseUrl = 'http://192.168.1.121:3000';
+
+  List<dynamic> _returnItems = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchReturnItems();
+  }
+
+  // 1. Fetch items that need to be returned
+  Future<void> _fetchReturnItems() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? cookie = prefs.getString('sessionCookie');
+
+      if (cookie == null) {
+        throw Exception('Not logged in');
+      }
+
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/return'),
+        headers: {'Cookie': cookie},
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _returnItems = jsonDecode(response.body);
+          _isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load return items: ${response.statusCode}');
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  // 2. Process the return (Call the PATCH API)
+  Future<void> _processReturn(int borrowId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? cookie = prefs.getString('sessionCookie');
+
+      final response = await http.patch(
+        Uri.parse('$_baseUrl/api/process-return/$borrowId'),
+        headers: {'Cookie': cookie ?? '', 'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        // Close dialog if open (handled in _showSuccessDialog)
+        // Refresh list
+        _fetchReturnItems();
+      } else {
+        // Handle error
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error processing return: ${response.body}'),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Connection error: $e')));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,18 +111,42 @@ class _StaffProcessReturnTabState extends State<StaffProcessReturnTab> {
             fontWeight: FontWeight.w500,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _fetchReturnItems,
+          ),
+        ],
       ),
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _returnItems.length,
-              itemBuilder: (context, index) {
-                final item = _returnItems[index];
-                return _buildReturnItemCard(context, item);
-              },
-            ),
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  )
+                : _errorMessage != null
+                ? Center(
+                    child: Text(
+                      'Error: $_errorMessage',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  )
+                : _returnItems.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No items pending return',
+                      style: TextStyle(color: Colors.white70, fontSize: 16),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _returnItems.length,
+                    itemBuilder: (context, index) {
+                      final item = _returnItems[index];
+                      return _buildReturnItemCard(context, item);
+                    },
+                  ),
           ),
         ],
       ),
@@ -66,8 +154,9 @@ class _StaffProcessReturnTabState extends State<StaffProcessReturnTab> {
   }
 
   Widget _buildReturnItemCard(BuildContext context, Map<String, dynamic> item) {
-    // Debug print to verify data
-    debugPrint('Building card with item: $item');
+    // app.js does not return an image path in /api/return, so we set a default empty string
+    // triggering the errorBuilder placeholder.
+    String imagePath = '';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16, left: 8, right: 8),
@@ -84,7 +173,7 @@ class _StaffProcessReturnTabState extends State<StaffProcessReturnTab> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.asset(
-                    item['image'] ?? '',
+                    imagePath,
                     width: 60,
                     height: 60,
                     fit: BoxFit.cover,
@@ -102,7 +191,7 @@ class _StaffProcessReturnTabState extends State<StaffProcessReturnTab> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: Text(
-                    item['assetName'] ?? 'N/A',
+                    item['asset_name'] ?? 'N/A',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -116,28 +205,25 @@ class _StaffProcessReturnTabState extends State<StaffProcessReturnTab> {
 
             _buildDetailRow(
               'Borrowed by:',
-              item['borrower']?.toString() ?? 'N/A',
+              item['borrower_name']?.toString() ?? 'N/A',
             ),
             const SizedBox(height: 8),
             _buildDetailRow(
               'Borrowed date:',
-              item['borrowDate']?.toString() ?? 'N/A',
+              item['borrow_date']?.toString() ?? 'N/A',
             ),
             const SizedBox(height: 8),
             _buildDetailRow(
-              'Returned date:',
-              item['returnDate']?.toString() ?? 'N/A',
+              'Due date:', // Changed from 'Returned date' since it hasn't been returned yet
+              item['return_date']?.toString() ?? 'N/A',
             ),
             const SizedBox(height: 8),
             _buildDetailRow(
               'Approved by:',
-              item['approver']?.toString() ?? 'N/A',
+              item['approved_by']?.toString() ?? 'N/A',
             ),
-            const SizedBox(height: 8),
-            _buildDetailRow(
-              'Processed by:',
-              item['staff']?.toString() ?? 'N/A',
-            ),
+
+            // Staff row removed because this item is not yet processed by staff
             const SizedBox(height: 16),
 
             SizedBox(
@@ -209,7 +295,7 @@ class _StaffProcessReturnTabState extends State<StaffProcessReturnTab> {
               const Icon(Icons.check_circle, color: Colors.green, size: 80),
               const SizedBox(height: 20),
               const Text(
-                'Return Confirmed.',
+                'Confirm Return',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -219,33 +305,29 @@ class _StaffProcessReturnTabState extends State<StaffProcessReturnTab> {
               ),
               const SizedBox(height: 10),
               Text(
-                'Asset is now ready to be borrowed again',
+                'Mark ${item['asset_name']} as returned?',
                 style: const TextStyle(fontSize: 16, color: Colors.black54),
                 textAlign: TextAlign.center,
               ),
-              // const SizedBox(height: 20),
-              // SizedBox(
-              //   width: double.infinity,
-              //   child: ElevatedButton(
-              //     onPressed: () {
-              //       Navigator.of(context).pop();
-              //       setState(() {
-              //         _returnItems.removeWhere(
-              //           (element) => element['id'] == item['id'],
-              //         );
-              //       });
-              //     },
-              //     style: ElevatedButton.styleFrom(
-              //       backgroundColor: staffButtonBlue,
-              //       foregroundColor: Colors.white,
-              //       padding: const EdgeInsets.symmetric(vertical: 14),
-              //       shape: RoundedRectangleBorder(
-              //         borderRadius: BorderRadius.circular(8),
-              //       ),
-              //     ),
-              //     child: const Text('OK'),
-              //   ),
-              // ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close dialog
+                    _processReturn(item['borrow_id']); // Call API
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: staffButtonBlue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('Confirm'),
+                ),
+              ),
             ],
           ),
         );
