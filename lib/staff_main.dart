@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pj2/staff_edit_assets_tab.dart';
 import 'package:pj2/staff_history_tab.dart';
 import 'package:pj2/staff_process_return_tab.dart';
@@ -18,7 +21,7 @@ class _StaffMainScreenState extends State<StaffMainScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _widgetOptions = <Widget>[
-    const _DashboardContent(),
+    const DashboardContent(),
     const StaffEditAssetsTab(),
     const StaffProcessReturnTab(),
     const StaffHistoryTab(),
@@ -85,11 +88,95 @@ class _StaffMainScreenState extends State<StaffMainScreen> {
   }
 }
 
-class _DashboardContent extends StatelessWidget {
-  const _DashboardContent({Key? key}) : super(key: key);
+class DashboardContent extends StatefulWidget {
+  const DashboardContent({Key? key}) : super(key: key);
+
+  @override
+  State<DashboardContent> createState() => _DashboardContentState();
+}
+
+class _DashboardContentState extends State<DashboardContent> {
+  // Use the IP that matches your setup
+  final String _baseUrl = 'http://192.168.1.121:3000';
+
+  Map<String, dynamic>? _dashboardData;
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDashboardData();
+  }
+
+  Future<void> _fetchDashboardData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? cookie = prefs.getString('sessionCookie');
+
+      if (cookie == null) {
+        throw Exception('Not logged in');
+      }
+
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/dashboard'),
+        headers: {'Cookie': cookie},
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _dashboardData = jsonDecode(response.body);
+          _isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load dashboard: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _logout() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? cookie = prefs.getString('sessionCookie');
+
+      // Call API to destroy session
+      await http.post(
+        Uri.parse('$_baseUrl/logout'),
+        headers: {'Cookie': cookie ?? ''},
+      );
+    } catch (e) {
+      debugPrint("Logout error: $e");
+    } finally {
+      // Clear local storage and navigate to login
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const login_screen.LoginScreen(),
+          ),
+          (route) => false,
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Extract data with fallbacks
+    final String available = _dashboardData?['Available']?.toString() ?? '...';
+    final String borrowed = _dashboardData?['Borrowed']?.toString() ?? '...';
+    final String disabled = _dashboardData?['Disabled']?.toString() ?? '...';
+
     return Scaffold(
       backgroundColor: staffPrimaryColor,
       body: SafeArea(
@@ -100,7 +187,27 @@ class _DashboardContent extends StatelessWidget {
               children: [
                 _buildAppBar(context),
                 const SizedBox(height: 20),
-                _buildDashboardCard(),
+                if (_isLoading)
+                  const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  )
+                else if (_errorMessage != null)
+                  Center(
+                    child: Column(
+                      children: [
+                        Text(
+                          'Error loading dashboard',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.refresh, color: Colors.white),
+                          onPressed: _fetchDashboardData,
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  _buildDashboardCard(available, borrowed, disabled),
               ],
             ),
           ),
@@ -124,15 +231,7 @@ class _DashboardContent extends StatelessWidget {
       ),
       actions: <Widget>[
         IconButton(
-          onPressed: () {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const login_screen.LoginScreen(),
-              ),
-              (route) => false,
-            );
-          },
+          onPressed: _logout,
           icon: const Icon(Icons.logout, color: Colors.white),
           tooltip: 'Logout',
         ),
@@ -140,7 +239,11 @@ class _DashboardContent extends StatelessWidget {
     );
   }
 
-  Widget _buildDashboardCard() {
+  Widget _buildDashboardCard(
+    String available,
+    String borrowed,
+    String disabled,
+  ) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -164,21 +267,21 @@ class _DashboardContent extends StatelessWidget {
             children: [
               _buildStatCard(
                 label: 'Available',
-                count: '5',
+                count: available,
                 color: const Color(0xFF4CAF50),
                 backgroundColor: const Color(0xFFF1F8F4),
               ),
               const SizedBox(width: 12),
               _buildStatCard(
                 label: 'Borrowed',
-                count: '2',
+                count: borrowed,
                 color: const Color(0xFFF44336),
                 backgroundColor: const Color(0xFFFFF3E0),
               ),
               const SizedBox(width: 12),
               _buildStatCard(
                 label: 'Disabled',
-                count: '1',
+                count: disabled,
                 color: const Color(0xFFBDBDBD),
                 backgroundColor: const Color(0xFFF5F5F5),
               ),
