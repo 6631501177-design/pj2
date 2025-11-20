@@ -53,8 +53,8 @@ class _StatusPageState extends State<StatusPage> {
 
       print('Fetching borrow data...');
       final response = await http.get(
-        // Uri.parse('http://192.168.1.121:3000/api/borrow-requests/check'),
-        Uri.parse('http://172.27.22.205:3000/api/borrow-requests/check'),
+        Uri.parse('http://192.168.1.121:3000/api/borrow-requests/check'),
+        // Uri.parse('http://172.27.22.205:3000/api/borrow-requests/check'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',

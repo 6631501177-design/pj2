@@ -97,7 +97,7 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
     if (picked != null) {
       setState(() {
         // Ensure we're storing just the date part without time
-        _returnDate = DateTime(picked.year, picked.month, picked.day);
+        _returnDate = DateTime(picked.year, picked.month, picked.day + 1);
       });
     }
   }
@@ -108,14 +108,16 @@ class _AssetDetailsPageState extends State<AssetDetailsPage> {
       final sessionCookie = prefs.getString('sessionCookie') ?? '';
 
       final response = await http.post(
-        // Uri.parse('http://192.168.1.121:3000/api/borrow'),
-        Uri.parse('http://172.27.22.205:3000/api/borrow'),
+        Uri.parse('http://192.168.1.121:3000/api/borrow'),
+        // Uri.parse('http://172.27.22.205:3000/api/borrow'),
         headers: {'Content-Type': 'application/json', 'Cookie': sessionCookie},
         body: jsonEncode({
           'asset_id': widget.assetId,
           // Convert to UTC for the API
-          'borrow_date': _borrowDate.toUtc().toIso8601String(),
-          'return_date': _returnDate.toUtc().toIso8601String(),
+          // 'borrow_date': _borrowDate.toUtc().toIso8601String(),
+          // 'return_date': _returnDate.toUtc().toIso8601String(),
+          'borrow_date': DateFormat('yyyy-MM-dd').format(_borrowDate),
+          'return_date': DateFormat('yyyy-MM-dd').format(_returnDate),
         }),
       );
 

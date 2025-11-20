@@ -10,9 +10,8 @@ const Color subtitleTextColor = Colors.white70;
 const Color cardColor = Color(0xFFFFFFFF);
 
 // --- API URL ---
-// Updated to match your app.js allowedOrigins
-// const String _apiUrl = '192.168.1.121:3000';
-const String _apiUrl = '172.27.22.205:3000';
+const String _apiUrl = '192.168.1.121:3000';
+// const String _apiUrl = '172.27.22.205:3000';
 
 class StudentHistoryTab extends StatefulWidget {
   const StudentHistoryTab({super.key});

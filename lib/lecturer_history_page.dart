@@ -17,9 +17,8 @@ const Color pendingColor = Color(0xFFFFA500);
 const Color buttonColor = Color(0xFF4F709C);
 
 // --- API URL ---
-// Updated to match your app.js allowedOrigins
-// const String _apiUrl = '192.168.1.121:3000';
-const String _apiUrl = '172.27.22.205:3000';
+const String _apiUrl = '192.168.1.121:3000';
+// const String _apiUrl = '172.27.22.205:3000';
 
 class LecturerHistoryPage extends StatefulWidget {
   const LecturerHistoryPage({super.key});
@@ -208,7 +207,10 @@ class _LecturerHistoryPageState extends State<LecturerHistoryPage> {
 
   // This widget now builds the status chip based on the data
   Widget _buildStatusChip(String status) {
-    final String statusText = status.toUpperCase();
+    final String displayStatus = status.toLowerCase() == 'approved'
+        ? 'Borrowed'
+        : status;
+    final String statusText = displayStatus.toUpperCase();
     Color statusColor;
 
     switch (status.toLowerCase()) {

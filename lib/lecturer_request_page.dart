@@ -40,8 +40,8 @@ class RequestedAsset {
       studentName: json['student_name'] ?? 'Unknown Student',
       assetName: json['asset_name'] ?? 'Unknown Asset',
       borrowDate: json['borrow_date'] ?? 'N/A',
-      // returnDate: json['return_date'] ?? 'N/A',
-      returnDate: json['return_date']?.toString() ?? 'N/A',
+      returnDate: json['return_date'] ?? 'N/A',
+      // returnDate: json['return_date']?.toString() ?? 'N/A',
       status: (json['status'] ?? 'pending').toString().toLowerCase(),
     );
   }
@@ -56,8 +56,8 @@ class LecturerRequestPage extends StatefulWidget {
 
 class _LecturerRequestPageState extends State<LecturerRequestPage> {
   // --- IP UPDATED to match your app.js ---
-  // final String baseUrl = 'http://192.168.1.121:3000';
-  final String baseUrl = 'http://172.27.22.205:3000';
+  final String baseUrl = 'http://192.168.1.121:3000';
+  // final String baseUrl = 'http://172.27.22.205:3000';
   List<RequestedAsset> requestedAssets = [];
   bool isLoading = true;
   String message = '';
@@ -116,6 +116,32 @@ class _LecturerRequestPageState extends State<LecturerRequestPage> {
   }
 
   Future<void> approveRequest(int requestId) async {
+    bool? shouldApprove = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Approve Request'),
+          content: const Text('Are you sure you want to approve this request?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Approve'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldApprove != true) return;
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final sessionCookie = prefs.getString('sessionCookie') ?? '';
@@ -132,7 +158,7 @@ class _LecturerRequestPageState extends State<LecturerRequestPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Request approved successfully'),
-              backgroundColor: Colors.green, // Added color
+              backgroundColor: Colors.green,
             ),
           );
         }
@@ -149,6 +175,60 @@ class _LecturerRequestPageState extends State<LecturerRequestPage> {
   }
 
   Future<void> rejectRequest(int requestId) async {
+    // Show dialog to get rejection reason
+    TextEditingController reasonController = TextEditingController();
+    bool? shouldProceed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Reject Request'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Please provide a reason for rejection:'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: reasonController,
+                decoration: const InputDecoration(
+                  hintText: 'Enter rejection reason',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (reasonController.text.trim().isNotEmpty) {
+                  Navigator.of(context).pop(true);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please provide a rejection reason'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Submit'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldProceed != true) return;
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final sessionCookie = prefs.getString('sessionCookie') ?? '';
@@ -156,7 +236,10 @@ class _LecturerRequestPageState extends State<LecturerRequestPage> {
       final response = await http.patch(
         Uri.parse('$baseUrl/api/borrow/$requestId'),
         headers: {'Content-Type': 'application/json', 'Cookie': sessionCookie},
-        body: jsonEncode({'status': 'Disapproved'}),
+        body: jsonEncode({
+          'status': 'Disapproved',
+          'rejection_reason': reasonController.text.trim(),
+        }),
       );
 
       if (response.statusCode == 200) {
@@ -165,7 +248,7 @@ class _LecturerRequestPageState extends State<LecturerRequestPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Request rejected successfully'),
-              backgroundColor: Colors.red, // Added color
+              backgroundColor: Colors.red,
             ),
           );
         }
